@@ -1,0 +1,7 @@
+{
+  "name": "AutoCode Myanmar - OBD-II Error Code & Gear Wiring Guide",
+  "description": "မြန်မာဘာသာဖြင့် ကား Error Code (OBD-II DTC) စစ်ဆေးဖတ်ရှုခြင်းနှင့် အော်တို/CVT ဂီယာဝိုင်ယာ၊ Solenoid ပင်နံပါတ်၊ ပြုပြင်နည်းလမ်းညွှန်",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
