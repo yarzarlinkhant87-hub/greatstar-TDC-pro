@@ -5,6 +5,9 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build-apk:
     name: Build Native Android APK
@@ -43,6 +46,7 @@ jobs:
       - name: Build Debug APK via Gradle
         run: |
           cd android
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace --no-daemon
 
@@ -50,5 +54,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: GreatStar-ZNW-DTC-PRO-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 14
