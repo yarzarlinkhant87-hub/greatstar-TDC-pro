@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GREATSTAR DTC-PRO</string>
+    <string name="title_activity_main">GREATSTAR DTC-PRO</string>
+    <string name="package_name">com.greatstar.dtcpro</string>
+    <string name="custom_url_scheme">com.greatstar.dtcpro</string>
+</resources>

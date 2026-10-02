@@ -133,7 +133,7 @@ export default function App() {
 
       {/* Main Container with Dynamic Zoom Support */}
       <main 
-        className="flex-1 max-w-7xl w-full mx-auto px-4 py-5"
+        className="flex-1 max-w-7xl w-full mx-auto px-4 py-5 pb-12"
         style={{ zoom: zoomScale !== 100 ? `${zoomScale}%` : undefined }}
       >
         {activeTab === 'scanner' && (
@@ -218,7 +218,7 @@ export default function App() {
       />
 
       {/* Footer */}
-      <footer className="mt-auto border-t border-slate-900 bg-slate-950/90 px-4 py-5 text-xs text-slate-500 font-['Padauk',sans-serif]">
+      <footer className="mt-auto border-t border-slate-900 bg-slate-950/90 px-4 pt-5 pb-8 sm:pb-5 text-xs text-slate-500 font-['Padauk',sans-serif]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div className="flex flex-col sm:flex-row items-center gap-2">
             <span className="font-black font-['Chakra_Petch',sans-serif] text-sm bg-gradient-to-r from-amber-400 to-amber-500 bg-clip-text text-transparent">
