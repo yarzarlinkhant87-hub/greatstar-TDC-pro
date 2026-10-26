@@ -82,14 +82,14 @@ export const InstallAppModal: React.FC<InstallAppModalProps> = ({
             <div>
               <h3 className="text-sm sm:text-base font-bold text-white font-['Chakra_Petch',sans-serif] flex items-center gap-1.5 flex-wrap">
                 <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
-                  GREATSTAR • Z.N.W
+                  GREATSTAR
                 </span>
                 <span className="text-[10px] bg-amber-500 text-slate-950 font-bold font-mono px-1.5 py-0.2 rounded uppercase">
-                  DTC-PRO V9.8
+                  SPEC PRO
                 </span>
               </h3>
               <p className="text-[11px] text-slate-400 font-['Padauk',sans-serif]">
-                ပိုင်ရှင် - ဆရာ Zaw Naing Win • ဖုန်းတွင် တိုက်ရိုက်သိမ်းဆည်းနည်း
+                မော်တော်ယာဉ် နိမ်းပလိပ် စွယ်စုံကျမ်း • ဖုန်းတွင် တိုက်ရိုက်သိမ်းဆည်းနည်း
               </p>
             </div>
           </div>

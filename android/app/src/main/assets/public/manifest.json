@@ -1,15 +1,15 @@
 {
   "id": "/",
-  "name": "DTC-PRO",
-  "short_name": "DTC-PRO",
-  "description": "မော်တော်ယာဉ် OBD-II DTC Error Code နှင့် ဂီယာဝိုင်ယာ လမ်းညွှန်စနစ်",
+  "name": "GreatStar AutoSpec - Vehicle Nameplate & Specs Guide",
+  "short_name": "GreatStar ZNW",
+  "description": "GreatStar AutoSpec (Z.N.W): Universal Automotive Nameplate Decoder, Common Rail Diesel, Heavy Duty & Gearbox Technical Specs",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#020617",
   "background_color": "#020617",
-  "lang": "my",
+  "lang": "en",
   "categories": ["utilities", "automotive"],
   "icons": [
     {

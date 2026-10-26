@@ -115,20 +115,18 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2 font-['Chakra_Petch',sans-serif]">
                   <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 bg-clip-text text-transparent">
-                    GREATSTAR • Z.N.W
+                    GREATSTAR
                   </span>
                   <span className="text-xs bg-amber-500 text-slate-950 font-black px-2 py-0.5 rounded font-mono uppercase tracking-wider shadow">
-                    DTC-PRO V9.8
+                    SPEC PRO
                   </span>
                 </h1>
               </div>
               <p className="text-xs text-slate-400 font-['Padauk',sans-serif] flex items-center gap-1.5 flex-wrap">
                 <span className="text-amber-400 font-bold flex items-center gap-1">
                   <Award className="w-3.5 h-3.5" />
-                  ဆရာ Zaw Naing Win (ဝပ်ရှော့အင်ဂျင်နီယာ)
+                  မော်တော်ယာဉ် နိမ်းပလိပ်ပြား ဖတ်နည်းနှင့် စက်ပြင်နည်းပညာ စွယ်စုံကျမ်း
                 </span>
-                <span className="text-slate-500 hidden sm:inline">•</span>
-                <span className="hidden sm:inline text-slate-300">ကားစက်ထိုး ကုတ်ဖတ် & ဂီယာဝိုင်ယာ လက်စွဲ</span>
               </p>
             </div>
           </div>

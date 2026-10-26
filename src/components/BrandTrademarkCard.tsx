@@ -24,17 +24,17 @@ export const BrandTrademarkCard: React.FC<BrandTrademarkCardProps> = ({
           <div className="flex flex-col">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-black text-lg sm:text-2xl font-['Chakra_Petch',sans-serif] tracking-wider bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 bg-clip-text text-transparent drop-shadow-sm">
-                GREATSTAR • Z.N.W
+                GREATSTAR
               </span>
               <span className="px-2 py-0.5 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs font-mono tracking-tight shadow">
-                မူပိုင်အမှတ်တံဆိပ်
+                SPEC PRO
               </span>
             </div>
 
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className="text-sm sm:text-base font-bold text-amber-200 font-['Padauk',sans-serif] flex items-center gap-1.5">
                 <Award className="w-4 h-4 text-amber-400 shrink-0" />
-                ပိုင်ရှင် - ဆရာ Zaw Naing Win (ဝပ်ရှော့အင်ဂျင်နီယာ)
+                မော်တော်ယာဉ် နိမ်းပလိပ်ပြား ဖတ်နည်းနှင့် စက်ပြင်နည်းပညာ စွယ်စုံကျမ်း
               </span>
             </div>
 
