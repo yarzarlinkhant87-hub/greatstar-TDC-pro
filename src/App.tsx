@@ -9,6 +9,7 @@ import { UniversalNameplateScannerModal } from './components/UniversalNameplateS
 import { PlateLocationGuideModal } from './components/PlateLocationGuideModal';
 import { TOYOTA_PETROL_DATABASE } from './data/toyotaDatabase';
 import { ToyotaVehicle } from './types/nameplate';
+import { sanitizeVehicle } from './utils/vehicleSanitizer';
 import { 
   Search, 
   Settings, 
@@ -17,6 +18,7 @@ import {
   Car, 
   Compass,
   Camera,
+  Scan,
   X
 } from 'lucide-react';
 
@@ -36,14 +38,15 @@ export default function App() {
   // Scanned vehicles saved to localStorage
   const [scannedVehicles, setScannedVehicles] = useState<ToyotaVehicle[]>([]);
 
-  // Load saved scanned vehicles on mount
+  // Load saved scanned vehicles on mount with bulletproof sanitization
   useEffect(() => {
     try {
       const stored = localStorage.getItem('autocars_scanned_history');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          setScannedVehicles(parsed);
+          const sanitized = parsed.map((item, idx) => sanitizeVehicle(item, idx));
+          setScannedVehicles(sanitized);
         }
       }
     } catch (e) {
@@ -52,24 +55,35 @@ export default function App() {
   }, []);
 
   const handleVehicleSavedFromScanner = (newVehicle: ToyotaVehicle) => {
-    setScannedVehicles((prev) => [newVehicle, ...prev]);
+    const sanitized = sanitizeVehicle(newVehicle);
+    setScannedVehicles((prev) => [sanitized, ...prev]);
   };
 
   // Combine database vehicles with saved scanned vehicles
   const allVehicles: ToyotaVehicle[] = [...scannedVehicles, ...TOYOTA_PETROL_DATABASE];
 
-  // Filter vehicles
+  // Filter vehicles safely with optional chaining
   const filteredVehicles = allVehicles.filter(v => {
-    const q = searchTerm.toLowerCase();
-    const matchesSearch = 
-      v.modelName.toLowerCase().includes(q) ||
-      v.burmeseName.toLowerCase().includes(q) ||
-      v.chassisCode.toLowerCase().includes(q) ||
-      v.fullModelCode.toLowerCase().includes(q) ||
-      v.engine.code.toLowerCase().includes(q) ||
-      v.transmission.transCode.toLowerCase().includes(q) ||
-      (v.brand && v.brand.toLowerCase().includes(q)) ||
-      (v.fuelType && v.fuelType.toLowerCase().includes(q));
+    const q = (searchTerm || '').trim().toLowerCase();
+    const modelName = (v.modelName || '').toLowerCase();
+    const burmeseName = (v.burmeseName || '').toLowerCase();
+    const chassisCode = (v.chassisCode || '').toLowerCase();
+    const fullModelCode = (v.fullModelCode || '').toLowerCase();
+    const engineCode = (v.engine?.code || '').toLowerCase();
+    const transCode = (v.transmission?.transCode || '').toLowerCase();
+    const brand = (v.brand || '').toLowerCase();
+    const fuelType = (v.fuelType || '').toLowerCase();
+
+    const matchesSearch = !q || (
+      modelName.includes(q) ||
+      burmeseName.includes(q) ||
+      chassisCode.includes(q) ||
+      fullModelCode.includes(q) ||
+      engineCode.includes(q) ||
+      transCode.includes(q) ||
+      brand.includes(q) ||
+      fuelType.includes(q)
+    );
 
     let matchesCat = true;
     if (selectedCategory === 'all') {
@@ -77,11 +91,11 @@ export default function App() {
     } else if (selectedCategory === 'scanned') {
       matchesCat = !!v.isCustomScanned;
     } else if (selectedCategory === 'petrol') {
-      matchesCat = v.fuelType.includes('ဓာတ်ဆီ') && !v.fuelType.includes('Hybrid');
+      matchesCat = (v.fuelType || '').includes('ဓာတ်ဆီ') && !(v.fuelType || '').includes('Hybrid');
     } else if (selectedCategory === 'diesel_commonrail') {
-      matchesCat = v.fuelType.includes('Common Rail');
+      matchesCat = (v.fuelType || '').includes('Common Rail');
     } else if (selectedCategory === 'heavy_duty') {
-      matchesCat = v.category === 'heavy_duty' || v.fuelType.includes('Unit Injector');
+      matchesCat = v.category === 'heavy_duty' || (v.fuelType || '').includes('Unit Injector');
     } else if (selectedCategory === 'european_american') {
       matchesCat = v.category === 'european_american' || v.brand === 'BMW' || v.brand === 'Mercedes-Benz' || v.brand === 'Ford';
     } else {
@@ -92,7 +106,7 @@ export default function App() {
   });
 
   const handleOpenSection = (vehicle: ToyotaVehicle, section: 'fluids' | 'transmission' | 'engine' | 'paint' | 'breakdown') => {
-    setSelectedVehicle(vehicle);
+    setSelectedVehicle(sanitizeVehicle(vehicle));
     setActiveSection(section);
   };
 
@@ -117,14 +131,15 @@ export default function App() {
 
           {/* Clean Action Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Primary Action: Camera AI Scanner */}
+            {/* Primary Action: Universal AI Scanner */}
             <button
               type="button"
               onClick={() => setIsScannerModalOpen(true)}
-              className="px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/25 transition active:scale-95 font-['Padauk',sans-serif] cursor-pointer shrink-0"
+              className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-md shadow-amber-500/30 transition active:scale-95 font-['Padauk',sans-serif] cursor-pointer shrink-0"
+              title="နိမ်းပလိပ်ပြား Scanဖတ်ရန်"
             >
-              <Camera className="w-4 h-4 text-slate-950 shrink-0" />
-              <span className="font-bold">ဓာတ်ပုံဖတ်မည်</span>
+              <Scan className="w-4 h-4 text-slate-950 shrink-0" />
+              <span className="font-black tracking-wide">Scanဖတ်ရန်</span>
             </button>
 
             {/* Quick Tools */}
@@ -317,16 +332,16 @@ export default function App() {
                   ရှာဖွေမှုနှင့် ကိုက်ညီသော မော်ဒယ် အော့ဖ်လိုင်းထဲတွင် မတွေ့ရှိပါခင်ဗျာ။
                 </p>
                 <p className="text-xs text-slate-400 font-['Padauk',sans-serif]">
-                  အင်တာနက်ဖွင့်ပြီး အထက်ပါ <strong className="text-amber-400">"ဓာတ်ပုံရိုက်ဖတ်မည်"</strong> ခလုတ်ကို နှိပ်၍ အသစ် စကင်ဖတ်နိုင်ပါသည်!
+                  အင်တာနက်ဖွင့်ပြီး အထက်ပါ <strong className="text-amber-400">"Scanဖတ်ရန်"</strong> ခလုတ်ကို နှိပ်၍ အသစ် စကင်ဖတ်နိုင်ပါသည်!
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsScannerModalOpen(true)}
-                className="px-4 py-2 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl inline-flex items-center gap-1.5 cursor-pointer"
+                className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl inline-flex items-center gap-2 cursor-pointer font-['Padauk',sans-serif] shadow-lg shadow-amber-500/25 active:scale-95 transition"
               >
-                <Camera className="w-4 h-4" />
-                <span>နိမ်းပြား ဓာတ်ပုံရိုက်ဖတ်မည်</span>
+                <Scan className="w-4 h-4 text-slate-950" />
+                <span>နိမ်းပြား Scanဖတ်ရန်</span>
               </button>
             </div>
           ) : (

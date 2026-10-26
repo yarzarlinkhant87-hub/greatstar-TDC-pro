@@ -26,6 +26,7 @@ import { ToyotaVehicle, UniversalPlateScanResult } from '../types/nameplate';
 import { INSTANT_SAMPLE_RESULTS } from '../data/sampleNameplateResults';
 import { decodePlateFromTextOrQuery } from '../data/ruleBasedNameplateDecoder';
 import { RealisticNameplateVisual } from './RealisticNameplateVisual';
+import { sanitizeVehicle } from '../utils/vehicleSanitizer';
 
 interface UniversalNameplateScannerModalProps {
   isOpen: boolean;
@@ -404,13 +405,17 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
     setNoticeMessage(null);
     setCameraError(null);
 
-    if (!navigator?.mediaDevices?.getUserMedia) {
-      setCameraError('ဤဘရောက်ဇာတွင် ကင်မရာ တိုက်ရိုက်ဖွင့်ခွင့် မထောက်ပံ့ပါ (ဖုန်းထဲရှိပုံကို ထည့်သွင်းအသုံးပြုနိုင်ပါသည်)');
+    try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError('ဤဘရောက်ဇာတွင် တိုက်ရိုက်ကင်မရာ မထောက်ပံ့ပါ (အောက်ပါ "ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်မည်" သို့မဟုတ် "ဖုန်းထဲရှိပုံ" ဖြင့် သုံးနိုင်ပါသည်)');
+        return;
+      }
+    } catch {
+      setCameraError('အောက်ပါ "ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်မည်" သို့မဟုတ် "ဖုန်းထဲရှိပုံ" ဖြင့် စကင်ဖတ်နိုင်ပါသည်ခင်ဗျာ။');
       return;
     }
 
     try {
-      setIsLiveCameraActive(true);
       let stream: MediaStream | null = null;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -430,18 +435,22 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
 
       if (stream) {
         videoStreamRef.current = stream;
+        setIsLiveCameraActive(true);
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
         }
+      } else {
+        stopLiveCamera();
+        setCameraError('ကင်မရာ မပွင့်နိုင်သေးပါ။ အောက်ပါ "ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်မည်" ခလုတ်ကို နှိပ်၍ သုံးနိုင်ပါသည်ခင်ဗျာ။');
       }
     } catch (err: any) {
       console.warn('getUserMedia error:', err);
       stopLiveCamera();
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setCameraError('ကင်မရာ အသုံးပြုခွင့် (Camera Permission) ပိတ်ထားပါသဖြင့် "Allow" နှိပ်ပေးပါ (သို့မဟုတ်) အောက်ပါ "ဖုန်းထဲရှိပုံ" ကို ရွေးထည့်နိုင်ပါသည်ခင်ဗျာ။');
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || err.name === 'SecurityError') {
+        setCameraError('ကင်မရာ ခွင့်ပြုချက် လိုအပ်ပါသည် (သို့မဟုတ်) အောက်ပါ "ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်မည်" ခလုတ်ဖြင့် ၁၀၀% ချက်ချင်း ရိုက်ယူနိုင်ပါသည်ခင်ဗျာ။');
       } else {
-        setCameraError('ကင်မရာ တိုက်ရိုက်မပွင့်နိုင်သေးပါက "ဖုန်းထဲရှိပုံ ရွေးမည်" ခလုတ်ဖြင့် စမ်းသပ်နိုင်ပါသည်ခင်ဗျာ။');
+        setCameraError('အောက်ပါ "ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်မည်" သို့မဟုတ် "ဖုန်းထဲရှိပုံ" ဖြင့် စကင်ဖတ်နိုင်ပါသည်ခင်ဗျာ။');
       }
     }
   };
@@ -476,6 +485,14 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
     onClose();
   };
 
+  // Sync stream to video element whenever live camera state changes
+  useEffect(() => {
+    if (isLiveCameraActive && videoStreamRef.current && videoRef.current) {
+      videoRef.current.srcObject = videoStreamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isLiveCameraActive]);
+
   // Cleanup camera streams on unmount or when modal closes
   useEffect(() => {
     return () => {
@@ -488,7 +505,7 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
       stopLiveCamera();
     } else if (activeTab === 'camera' && !scanResult && !previewImage) {
       // Auto-start camera when modal opens, just like a QR scanner!
-      startLiveCamera();
+      startLiveCamera().catch(() => {});
     }
   }, [isOpen, activeTab]);
 
@@ -542,18 +559,23 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
       isCustomScanned: true
     };
 
+    const cleanVehicle = sanitizeVehicle(newVehicle);
+
     // Save to local storage
     try {
       const existingStr = localStorage.getItem('autocars_scanned_history');
-      const existingList: ToyotaVehicle[] = existingStr ? JSON.parse(existingStr) : [];
-      const updatedList = [newVehicle, ...existingList];
+      const existingList: any[] = existingStr ? JSON.parse(existingStr) : [];
+      const sanitizedExisting = Array.isArray(existingList)
+        ? existingList.map((item, idx) => sanitizeVehicle(item, idx))
+        : [];
+      const updatedList = [cleanVehicle, ...sanitizedExisting];
       localStorage.setItem('autocars_scanned_history', JSON.stringify(updatedList));
     } catch (e) {
       console.warn('LocalStorage save error:', e);
     }
 
     setIsSaved(true);
-    onVehicleSaved(newVehicle);
+    onVehicleSaved(cleanVehicle);
   };
 
   return (
@@ -587,7 +609,7 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-bold text-white font-['Padauk',sans-serif] flex items-center gap-2">
-                <span>နိမ်းပလိပ်ပြား AI ကင်မရာ စကင်နာ (Universal Scanner)</span>
+                <span>နိမ်းပလိပ်ပြား Scanဖတ်စက် (Universal AI Scanner)</span>
                 <span className="text-[10px] bg-amber-500 text-slate-950 font-bold font-mono px-1.5 py-0.5 rounded">
                   ONLINE AI
                 </span>
@@ -620,8 +642,8 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
                 : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
             }`}
           >
-            <Camera className="w-4 h-4" />
-            <span>နိမ်းပြား စကန်ဖတ်မည် (Camera & Photo)</span>
+            <Scan className="w-4 h-4" />
+            <span>Scanဖတ်ရန် (Camera & Photo)</span>
           </button>
 
           <button
@@ -636,7 +658,7 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
             }`}
           >
             <Edit3 className="w-4 h-4" />
-            <span>စာရိုက်ထည့်ပြီး ဖတ်မည် (Manual Code)</span>
+            <span>စာရိုက်ထည့်ပြီး Scanဖတ်မည် (Manual Code)</span>
           </button>
         </div>
 
@@ -720,24 +742,25 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
                     </div>
                   </div>
 
-                  {/* Inside Frame: Live Camera Video OR Uploaded Image OR Friendly Prompt */}
+                  {/* Inside Frame: Persistent Video Element (Never unmounted) */}
+                  <video
+                    ref={videoRef}
+                    playsInline
+                    muted
+                    autoPlay
+                    className={`w-full h-full object-cover ${isLiveCameraActive ? 'block' : 'hidden'}`}
+                  />
+
                   {isLiveCameraActive ? (
-                    <div className="w-full h-full relative flex items-center justify-center bg-black">
-                      <video
-                        ref={videoRef}
-                        playsInline
-                        muted
-                        autoPlay
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute top-2 left-2 bg-red-600/90 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow z-30 animate-pulse">
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute top-2 left-2 bg-red-600/90 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow z-30 animate-pulse pointer-events-auto">
                         <span className="w-2 h-2 rounded-full bg-white" />
                         <span>LIVE SCAN</span>
                       </div>
                       <button
                         type="button"
                         onClick={stopLiveCamera}
-                        className="absolute top-2 right-2 bg-black/80 hover:bg-black text-white p-1.5 rounded-xl border border-white/20 transition cursor-pointer z-30"
+                        className="absolute top-2 right-2 bg-black/80 hover:bg-black text-white p-1.5 rounded-xl border border-white/20 transition cursor-pointer z-30 pointer-events-auto"
                         title="ကင်မရာ ပိတ်မည်"
                       >
                         <X className="w-4 h-4 text-red-400" />
@@ -768,17 +791,33 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
                     </div>
                   ) : (
                     <div className="p-4 text-center space-y-3 z-10 max-w-xs">
-                      <Scan className="w-10 h-10 text-amber-400/80 mx-auto animate-pulse" />
-                      <div className="text-xs font-bold text-slate-200 font-['Padauk',sans-serif] leading-relaxed">
-                        {cameraError ? cameraError : 'နိမ်းပလိပ်ပြားကို လေးထောင့်ဘောင်အတွင်း ချိန်မှတ်ပါ'}
+                      <Scan className="w-10 h-10 text-amber-400/90 mx-auto animate-pulse" />
+                      <div className="space-y-1">
+                        <div className="text-xs sm:text-sm font-bold text-slate-100 font-['Padauk',sans-serif]">
+                          နိမ်းပလိပ်ပြားကို လေးထောင့်ဘောင်အတွင်း ချိန်ထားပါ
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-['Padauk',sans-serif]">
+                          {cameraError ? cameraError : 'ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်ဖတ်နိုင်ပြီး ဖုန်းထဲရှိပုံကိုလည်း ထည့်သွင်းဖတ်နိုင်ပါသည်'}
+                        </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={startLiveCamera}
-                        className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-bold text-xs rounded-xl shadow-md transition cursor-pointer font-['Padauk',sans-serif] active:scale-95"
-                      >
-                        ကင်မရာ ဖွင့်မည်
-                      </button>
+                      <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => fileInputCameraRef.current?.click()}
+                          className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition cursor-pointer font-['Padauk',sans-serif] active:scale-95 flex items-center justify-center gap-1.5"
+                        >
+                          <Camera className="w-4 h-4 text-slate-950" />
+                          <span>ဖုန်းကင်မရာဖြင့် ရိုက်မည်</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => fileInputGalleryRef.current?.click()}
+                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition cursor-pointer font-['Padauk',sans-serif] flex items-center justify-center gap-1.5"
+                        >
+                          <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
+                          <span>ဖုန်းထဲရှိပုံ</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -820,7 +859,7 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
                         className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/30 flex items-center gap-2 font-['Padauk',sans-serif] active:scale-95"
                       >
                         <Scan className="w-4 h-4 text-slate-950" />
-                        <span>စကန်ဖတ်မည် (Scan Now)</span>
+                        <span>Scanဖတ်မည် (Scan Now)</span>
                       </button>
 
                       <button
@@ -858,7 +897,7 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
                         className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/30 flex items-center gap-2 font-['Padauk',sans-serif]"
                       >
                         <Scan className="w-4 h-4" />
-                        <span>စကန်ဖတ်မည် (Scan Now)</span>
+                        <span>Scanဖတ်မည် (Scan Now)</span>
                       </button>
 
                       <button
@@ -873,20 +912,32 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
                       </button>
                     </div>
                   ) : (
-                    <div className="flex flex-wrap items-center justify-center gap-2.5">
+                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
+                      {/* Direct Shutter Camera: 100% Works Everywhere */}
+                      <button
+                        type="button"
+                        onClick={() => fileInputCameraRef.current?.click()}
+                        className="px-5 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition cursor-pointer shadow-md flex items-center justify-center gap-2 font-['Padauk',sans-serif] active:scale-95"
+                      >
+                        <Camera className="w-4 h-4 text-slate-950" />
+                        <span>ဖုန်းကင်မရာဖြင့် ရိုက်မည်</span>
+                      </button>
+
+                      {/* Live Camera Scanner */}
                       <button
                         type="button"
                         onClick={startLiveCamera}
-                        className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition cursor-pointer shadow-md flex items-center justify-center gap-2 font-['Padauk',sans-serif] active:scale-95"
+                        className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer border border-amber-500/30 flex items-center justify-center gap-2 font-['Padauk',sans-serif] active:scale-95"
                       >
-                        <Camera className="w-4 h-4 text-slate-950" />
-                        <span>ကင်မရာ ဖွင့်မည်</span>
+                        <Scan className="w-4 h-4 text-amber-400" />
+                        <span>တိုက်ရိုက် Live Scan</span>
                       </button>
 
+                      {/* Gallery Photo */}
                       <button
                         type="button"
                         onClick={() => fileInputGalleryRef.current?.click()}
-                        className="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer border border-slate-700 flex items-center justify-center gap-2 font-['Padauk',sans-serif]"
+                        className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer border border-slate-700 flex items-center justify-center gap-2 font-['Padauk',sans-serif]"
                       >
                         <ImageIcon className="w-4 h-4 text-amber-400" />
                         <span>ဖုန်းထဲရှိပုံ ရွေးမည်</span>

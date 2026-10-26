@@ -68,14 +68,14 @@ export const NameplatePlateCard: React.FC<NameplatePlateCardProps> = ({
             {country}
           </span>
           <span className={`text-xs px-2.5 py-1 rounded-md font-mono font-bold flex items-center gap-1 ${
-            vehicle.transmission.driveType.includes('4WD') || vehicle.transmission.driveType.includes('6x4')
+            (vehicle.transmission?.driveType || '').includes('4WD') || (vehicle.transmission?.driveType || '').includes('6x4')
               ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' 
-              : vehicle.transmission.driveType.includes('RWD')
+              : (vehicle.transmission?.driveType || '').includes('RWD')
               ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
               : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
           }`}>
             <ShieldCheck className="w-3.5 h-3.5" />
-            {vehicle.transmission.driveType}
+            {vehicle.transmission?.driveType || '2WD (ရှေ့ဆွဲ)'}
           </span>
         </div>
       </div>
@@ -203,22 +203,34 @@ export const NameplatePlateCard: React.FC<NameplatePlateCardProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
           <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
             <span className="text-slate-400 block font-['Padauk',sans-serif]">အင်ဂျင်ဝိုင် စံနှုန်း</span>
-            <span className="font-bold text-amber-300 font-mono text-sm">{vehicle.fluids.engineOil.viscosity.split(' ')[0]}</span>
-            <span className="text-[11px] text-slate-400 block">{vehicle.fluids.engineOil.capacityWithFilter}</span>
+            <span className="font-bold text-amber-300 font-mono text-sm">
+              {vehicle.fluids?.engineOil?.viscosity?.split(' ')?.[0] || '0W-20 / 5W-30'}
+            </span>
+            <span className="text-[11px] text-slate-400 block">
+              {vehicle.fluids?.engineOil?.capacityWithFilter || '4.0 L'}
+            </span>
           </div>
 
           <div className="bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
             <span className="text-slate-400 block font-['Padauk',sans-serif]">ဂီယာဆီ အမျိုးအစား</span>
             <span className="font-bold text-emerald-400 font-mono text-xs line-clamp-1">
-              {vehicle.fluids.transmissionFluid.fluidType.replace('Toyota Genuine ', '').replace('Heavy Duty Gear Oil ', '')}
+              {(vehicle.fluids?.transmissionFluid?.fluidType || 'OEM Fluid')
+                .replace('Toyota Genuine ', '')
+                .replace('Heavy Duty Gear Oil ', '')}
             </span>
-            <span className="text-[11px] text-slate-400 block">{vehicle.fluids.transmissionFluid.drainRefillCapacity}</span>
+            <span className="text-[11px] text-slate-400 block">
+              {vehicle.fluids?.transmissionFluid?.drainRefillCapacity || '3.5 L'}
+            </span>
           </div>
 
           <div className="col-span-2 sm:col-span-1 bg-slate-950/70 p-2.5 rounded-xl border border-slate-800 flex flex-col justify-between">
             <span className="text-slate-400 block font-['Padauk',sans-serif]">ဂီယာဘောက်စ်</span>
-            <span className="font-bold text-sky-400 font-mono text-sm">{vehicle.transmission.transCode}</span>
-            <span className="text-[10px] text-slate-400 line-clamp-1">{vehicle.transmission.transType}</span>
+            <span className="font-bold text-sky-400 font-mono text-sm">
+              {vehicle.transmission?.transCode || 'AUTO'}
+            </span>
+            <span className="text-[10px] text-slate-400 line-clamp-1">
+              {vehicle.transmission?.transType || 'Automatic'}
+            </span>
           </div>
         </div>
 
@@ -254,7 +266,7 @@ export const NameplatePlateCard: React.FC<NameplatePlateCardProps> = ({
           >
             <Wrench className="w-5 h-5 mb-1 text-emerald-400 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold font-['Padauk',sans-serif]">အင်ဂျင် & Timing</span>
-            <span className="text-[10px] text-emerald-400/70">{vehicle.engine.code}</span>
+            <span className="text-[10px] text-emerald-400/70">{vehicle.engine?.code || 'အင်ဂျင်'}</span>
           </button>
 
           {/* Button 4: Paint & Trim */}
@@ -265,7 +277,9 @@ export const NameplatePlateCard: React.FC<NameplatePlateCardProps> = ({
           >
             <Palette className="w-5 h-5 mb-1 text-purple-400 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold font-['Padauk',sans-serif]">ဆေးကုဒ် (Color)</span>
-            <span className="text-[10px] text-purple-400/70">{vehicle.paints[0]?.code} • {vehicle.paints[0]?.nameMm?.split(' ')?.[0] || 'ဆေး'}</span>
+            <span className="text-[10px] text-purple-400/70">
+              {vehicle.paints?.[0]?.code || '070'} • {vehicle.paints?.[0]?.nameMm?.split(' ')?.[0] || 'ဆေး'}
+            </span>
           </button>
 
           {/* Button 5: Breakdown */}

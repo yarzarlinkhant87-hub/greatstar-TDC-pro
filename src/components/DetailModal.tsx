@@ -1,5 +1,6 @@
 import React from 'react';
 import { ToyotaVehicle } from '../types/nameplate';
+import { sanitizeVehicle } from '../utils/vehicleSanitizer';
 import { 
   X, 
   Droplet, 
@@ -24,11 +25,12 @@ interface DetailModalProps {
 }
 
 export const DetailModal: React.FC<DetailModalProps> = ({
-  vehicle,
+  vehicle: rawVehicle,
   section,
   onClose
 }) => {
-  if (!vehicle || !section) return null;
+  if (!rawVehicle || !section) return null;
+  const vehicle = sanitizeVehicle(rawVehicle);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-in fade-in duration-200">

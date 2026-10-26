@@ -39,15 +39,15 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       {/* Brand Typography & Official English App Title */}
       {showText && (
         <div className="flex flex-col min-w-0 select-none">
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             <span className={`font-black font-['Chakra_Petch',sans-serif] tracking-wider bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 bg-clip-text text-transparent ${currentSize.text} leading-none`}>
               GREATSTAR
             </span>
-            <span className="text-[8px] sm:text-[9px] tracking-wider bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold px-1.5 py-0.5 rounded font-mono uppercase whitespace-nowrap">
-              AutoSpec • Z.N.W
+            <span className="text-[8px] sm:text-[9px] tracking-wider bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold px-1 sm:px-1.5 py-0.5 rounded font-mono uppercase whitespace-nowrap">
+              Z.N.W
             </span>
           </div>
-          <span className={`text-slate-400 font-['Padauk',sans-serif] ${currentSize.sub} leading-tight truncate mt-0.5`}>
+          <span className={`text-slate-400 font-['Padauk',sans-serif] ${currentSize.sub} leading-tight truncate mt-0.5 hidden sm:block`}>
             မော်တော်ယာဉ် နိမ်းပလိပ် စွယ်စုံကျမ်း
           </span>
         </div>

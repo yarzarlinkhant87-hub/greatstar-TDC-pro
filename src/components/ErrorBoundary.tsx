@@ -28,6 +28,15 @@ export class ErrorBoundary extends Component<Props, State> {
     window.location.reload();
   };
 
+  private handleClearCacheAndReset = () => {
+    try {
+      localStorage.removeItem('autocars_scanned_history');
+      sessionStorage.clear();
+    } catch {}
+    this.setState({ hasError: false, error: undefined });
+    window.location.reload();
+  };
+
   public render() {
     if (this.state.hasError) {
       return (
@@ -41,16 +50,27 @@ export class ErrorBoundary extends Component<Props, State> {
                 မျက်နှာပြင် ပြန်လည်စတင်ရန် လိုအပ်ပါသည်
               </h2>
               <p className="text-xs text-slate-400 font-['Padauk',sans-serif] mt-1 leading-relaxed">
-                ဖုန်း၏ မမ်မိုရီ သို့မဟုတ် ဘရောက်ဇာချို့ယွင်းချက်ကြောင့် ခေတ္တရပ်တန့်သွားခဲ့ပါသည်။ အောက်ပါခလုတ်ကို နှိပ်၍ အဆင်ပြေစွာ ဆက်လက် အသုံးပြုနိုင်ပါသည်ခင်ဗျာ။
+                ဖုန်းဘရောက်ဇာ သို့မဟုတ် မမ်မိုရီ ခေတ္တရပ်တန့်သွားခဲ့ပါသည်။ အောက်ပါခလုတ်ကို နှိပ်၍ အဆင်ပြေစွာ ဆက်လက် အသုံးပြုနိုင်ပါသည်ခင်ဗျာ။
               </p>
             </div>
-            <button
-              onClick={this.handleReset}
-              className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-sm rounded-xl transition cursor-pointer flex items-center justify-center gap-2 font-['Padauk',sans-serif] shadow-lg shadow-amber-500/25"
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span>အက်ပ်ကို ပြန်လည်စတင်မည် (Restart)</span>
-            </button>
+            <div className="space-y-2 pt-2">
+              <button
+                type="button"
+                onClick={this.handleReset}
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold text-sm rounded-xl transition cursor-pointer flex items-center justify-center gap-2 font-['Padauk',sans-serif] shadow-lg shadow-amber-500/25"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>အက်ပ်ကို ပြန်လည်စတင်မည် (Restart)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={this.handleClearCacheAndReset}
+                className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl transition cursor-pointer flex items-center justify-center gap-2 font-['Padauk',sans-serif] border border-slate-700"
+              >
+                <span>ယာယီမှတ်ဉာဏ် အသစ်ရှင်းလင်းပြီး ပြန်ဖွင့်မည် (Clear Cache & Reload)</span>
+              </button>
+            </div>
           </div>
         </div>
       );
