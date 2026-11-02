@@ -368,11 +368,13 @@ export default function App() {
       />
 
       {/* Universal Camera Nameplate AI Scanner Modal */}
-      <UniversalNameplateScannerModal
-        isOpen={isScannerModalOpen}
-        onClose={() => setIsScannerModalOpen(false)}
-        onVehicleSaved={handleVehicleSavedFromScanner}
-      />
+      {isScannerModalOpen && (
+        <UniversalNameplateScannerModal
+          isOpen={isScannerModalOpen}
+          onClose={() => setIsScannerModalOpen(false)}
+          onVehicleSaved={handleVehicleSavedFromScanner}
+        />
+      )}
 
       {/* Plate Location Guide Modal */}
       <PlateLocationGuideModal

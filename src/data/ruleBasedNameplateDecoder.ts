@@ -113,6 +113,22 @@ export function decodePlateFromTextOrQuery(input: string): DecodedPlateResult {
     return INSTANT_SAMPLE_RESULTS['sample-honda-fit'];
   }
 
+  // 10. Check for Chinese Diesel Engines (Yunnei 490QB / 490QGB / FAW / BNK / 成都云内)
+  if (
+    clean.includes('490') ||
+    clean.includes('YUNNEI') ||
+    clean.includes('490QB') ||
+    clean.includes('490QGB') ||
+    clean.includes('490GB') ||
+    clean.includes('BNK17001613') ||
+    clean.includes('XK06-002') ||
+    clean.includes('CHENGDU') ||
+    clean.includes('云内') ||
+    clean.includes('FAW')
+  ) {
+    return INSTANT_SAMPLE_RESULTS['sample-yunnei-490'];
+  }
+
   // 10. Generic Fallback with intelligently inferred fields
   const isToyota = clean.includes('TOYOTA') || clean.includes('DBA-') || clean.includes('CBA-');
   const isDiesel = clean.includes('DIESEL') || clean.includes('GD') || clean.includes('KD') || clean.includes('CRDI');

@@ -28,118 +28,90 @@ const ai = new GoogleGenAI({
   },
 });
 
-const SYSTEM_INSTRUCTION_NAMEPLATE = `You are "ဆရာကြီး" (Master Automotive Engineer & Vehicle Nameplate Decoding Specialist in Myanmar).
-Your expertise spans Asian (Toyota, Honda, Nissan, Suzuki, Isuzu, Hino, Mitsubishi, Mazda), European (BMW, Mercedes-Benz, Audi, Volkswagen), and American (Ford, Chevrolet) vehicles across:
-1. Small passenger cars & sedans
-2. Medium SUVs, MPVs, and Pickup trucks
-3. Heavy Duty commercial trucks (ကားကြီး/ကုန်တင်ကား) and buses (e.g. Hino Profia, Dutro, Isuzu Giga, Forward, Mitsubishi Fuso Super Great)
-4. All fuel systems: Petrol (VVT-i, Valvematic, Direct Injection D-4/D-4S), Diesel Common Rail (1KD, 2KD, 1GD, 2GD, 4JJ1, 4HK1, YD25), Heavy Duty Electronic Unit Injectors (EUI/HEUI - Hino E13C/J08E, Fuso 6M70, Nissan GE13), and Hybrid (THS-II, e-CVT).
+const SYSTEM_INSTRUCTION_NAMEPLATE = `You are "ဆရာကြီး" (Master Automotive Engineer & Vehicle/Engine Nameplate Decoding Specialist in Myanmar).
+Your expertise spans:
+1. Asian passenger & commercial vehicles (Toyota, Honda, Nissan, Suzuki, Isuzu, Hino, Mitsubishi, Mazda)
+2. European & American vehicles (BMW, Mercedes-Benz, Audi, Volkswagen, Ford, Chevrolet)
+3. Heavy Duty commercial trucks, buses, tractors, and industrial diesel engines (Hino Profia/Dutro, Isuzu Giga/Forward, Mitsubishi Fuso, FAW, Chengdu Yunnei Power / 云内动力, Weichai, Yuchai, Cummins)
+4. All fuel and injection systems: Petrol (VVT-i, Valvematic, D-4/D-4S direct injection), Diesel Common Rail (1KD, 2KD, 1GD, 2GD, 4JJ1, 4HK1, YD25), Mechanical Inline Fuel Injection Pumps (စက်မှုလိုင်းထိုးဒီဇယ်ပန့် - e.g. Yunnei 490QB / 490QGB, 4100, 4102), and Heavy Duty Electronic Unit Injectors (EUI/HEUI - Hino E13C/J08E, Fuso 6M70, Nissan GE13).
 
-When an image of an automotive nameplate (နိမ်းပလိပ်ပြား), VIN plate, or vehicle text code is provided:
-1. Read all stamped letters, embossed codes, numbers, and markings accurately.
+When an image of an automotive nameplate (နိမ်းပလိပ်ပြား), engine metal plate, VIN plate, or vehicle text code is provided:
+1. Read all stamped letters, embossed codes, Chinese characters (e.g. 型号 = Model, 额定功率 = Rated Power, 额定转速 = Rated Speed, 制造编号 = Serial No, 生产许可证号 = License No, 制造企业 = Maker), and numbers accurately.
 2. Structure your response in valid JSON matching this schema:
 {
-  "maker": "Toyota | Honda | Nissan | Suzuki | Isuzu | Hino | BMW | Mercedes-Benz | Ford | etc.",
-  "modelName": "Full Model Name (e.g. Corolla Fielder 1.5G or Hilux Revo 2.8D or Hino Profia 12.9L or BMW 320i)",
-  "burmeseName": "မြန်မာအမည် (ဥပမာ- တိုယိုတာ ဖီးလ်ဒါ ၁.၅ သို့မဟုတ် ဟိုင်းလပ် ရီဗို ၂.၈ ဒီဇယ် သို့မဟုတ် ဟီနို ပရိုဖီယာ ၁၀ ဘီး)",
-  "countryOfOrigin": "ဂျပန် (Japan) | ထိုင်း (Thailand) | ဂျာမနီ (Germany) | အမေရိကန် (USA) | etc.",
-  "manufactureYear": "ထုတ်လုပ်သည့် ခုနှစ်နှင့် ခွဲခြားနည်း (ဥပမာ- ၂၀၁၄ ခုနှစ် (VIN ၁၀ လုံးမြောက် 'E' အရ အတည်ပြုချက်) သို့မဟုတ် ၂၀၀၈ ခုနှစ် (JDM Frame Serial 30xxxx အရ))",
-  "generationEra": "မျိုးဆက်ခွဲခြားမှု (ဥပမာ- Facelift မီးခွက်ပြောင်း / All-New မျိုးဆက်သစ်)",
-  "categoryMm": "ကားသေး ကွန်ပက် | ကားလတ် SUV / Pickup | ကားကြီး ကုန်တင် / ဘတ်စ်ကား",
-  "fuelSystemMm": "ဓာတ်ဆီ Dual VVT-i | ဒီဇယ် Common Rail (1600-2200 bar) | ကားကြီး Unit Injector (EUI) | Hybrid e-CVT",
+  "maker": "Toyota | Honda | Nissan | Chengdu Yunnei Power / FAW (成都云内动力) | Hino | Isuzu | etc.",
+  "modelName": "Full Model Name (e.g. Corolla Fielder 1.5G or Yunnei 490QGB Diesel Engine 48kW or Hilux Revo 2.8D or Hino Profia 12.9L)",
+  "burmeseName": "မြန်မာအမည် (ဥပမာ- ယွန်းနေး ၄၉၀ ဒီဇယ်အင်ဂျင် သို့မဟုတ် တိုယိုတာ ဖီးလ်ဒါ ၁.၅ သို့မဟုတ် ဟီနို ပရိုဖီယာ)",
+  "countryOfOrigin": "ဂျပန် (Japan) | တရုတ် (China) | ထိုင်း (Thailand) | ဂျာမနီ (Germany) | အမေရိကန် (USA) | etc.",
+  "manufactureYear": "ထုတ်လုပ်သည့် ခုနှစ်နှင့် ခွဲခြားနည်း (ဥပမာ- ၂၀၁၇ ခုနှစ် (Plate Stamp 2017.12 C အရ) သို့မဟုတ် ၂၀၁၄ ခုနှစ် (VIN ၁၀ လုံးမြောက် 'E' အရ))",
+  "generationEra": "မျိုးဆက်ခွဲခြားမှု",
+  "categoryMm": "ဒီဇယ် ကုန်တင်ကားလတ် / စက်ယန္တရား | ကားသေး ကွန်ပက် | ကားလတ် SUV / Pickup | ကားကြီး ကုန်တင် / ဘတ်စ်ကား",
+  "fuelSystemMm": "စက်မှုလိုင်းထိုးဒီဇယ်ပန့် (Mechanical Inline Pump) | ဒီဇယ် Common Rail (1600-2200 bar) | ဓာတ်ဆီ Dual VVT-i | EUI | Hybrid e-CVT",
   "engine": {
-    "code": "အင်ဂျင်ကုဒ် (e.g. 1NZ-FE / 1GD-FTV / E13C-TL / B48B20)",
-    "displacement": "ဆလင်ဒါဆံ့အား (e.g. 1496 cc (1.5L) / 2755 cc (2.8L) / 12,913 cc (12.9L))",
-    "cylinders": "ဆလင်ဒါဖွဲ့စည်းမှု (e.g. Inline 4-cylinder, DOHC 16-valve သို့မဟုတ် Inline 6-cylinder 24-valve)",
-    "valvesSystem": "ဗားစနစ် (e.g. Dual VVT-i / 16-Valve Common Rail D-4D / 24-Valve EUI Turbo Intercooler)",
-    "timingType": "တိုင်မင်စနစ် (Timing Chain (သံကြိုး) / Timing Belt (ခါးပတ်ကြိုး) / Gear Train (စက်သွားဂီယာစနစ်))",
+    "code": "အင်ဂျင်ကုဒ် (e.g. 490QGB / 1NZ-FE / 1GD-FTV / E13C-TL)",
+    "displacement": "ဆလင်ဒါဆံ့အား (e.g. 2672 cc (2.7L) / 1496 cc / 2755 cc)",
+    "cylinders": "ဆလင်ဒါဖွဲ့စည်းမှု (e.g. Inline 4-cylinder OHV 8-Valve သို့မဟုတ် Inline 4-cylinder DOHC 16-Valve)",
+    "valvesSystem": "ဗားစနစ် (e.g. OHV 8-Valve Pushrod စနစ် သို့မဟုတ် Dual VVT-i)",
+    "timingType": "တိုင်မင်စနစ် (Gear Train (စက်သွားဂီယာစနစ် - ခါးပတ်မလို) / Timing Chain (သံကြိုး) / Timing Belt (ခါးပတ်ကြိုး))",
     "timingNote": "တိုင်မင် ထိန်းသိမ်းမှု အကြံပြုချက်",
-    "horsepower": "မြင်းကောင်ရေ (e.g. 109 PS @ 6,000 RPM / 204 PS / 410 PS)",
-    "torque": "ရုန်းအား (e.g. 141 N·m / 500 N·m / 1,618 N·m)",
-    "sparkPlugOrInjector": "ပလပ်ခေါင်း သို့မဟုတ် အင်ဂျက်တာ မော်ဒယ် (e.g. Denso SC20HR11 Iridium သို့မဟုတ် Denso G4 Common Rail Injector သို့မဟုတ် Bosch Unit Injector)"
+    "horsepower": "မြင်းကောင်ရေ (e.g. 65 HP (48 kW @ 3,200 RPM) သို့မဟုတ် 109 PS @ 6,000 RPM)",
+    "torque": "ရုန်းအား (e.g. 157 N·m @ 2,200 RPM သို့မဟုတ် 141 N·m)",
+    "sparkPlugOrInjector": "ပလပ်ခေါင်း သို့မဟုတ် အင်ဂျက်တာ မော်ဒယ် (e.g. Mechanical Multi-hole Nozzle Injectors သို့မဟုတ် Denso SC20HR11)"
   },
   "transmission": {
-    "transCode": "ဂီယာကုဒ် (e.g. K310 / AC60F / ZF 8HP50 / Hino ProShift 7)",
-    "transName": "ဂီယာအမည် (e.g. Super CVT-i / 6-Speed Auto / 7-Speed Manual Splitter)",
-    "transType": "CVT | Automatic (AT) | Manual (MT) | Dual Clutch (DCT)",
-    "driveType": "FWD (ရှေ့ဆွဲ ၂ ဘီး) | RWD (နောက်ဆွဲ) | 4WD (၄ ဘီးယက်) | 6x4 (နောက်ဘီးစုံယက်)",
+    "transCode": "ဂီယာကုဒ် (e.g. Manual 5-Speed MT / K310 / AC60F / ZF 8HP50)",
+    "transName": "ဂီယာအမည် (e.g. 5-Speed Manual Gearbox / Super CVT-i)",
+    "transType": "Manual (MT) | CVT | Automatic (AT)",
+    "driveType": "RWD (နောက်ဆွဲ) | FWD (ရှေ့ဆွဲ ၂ ဘီး) | 4WD (၄ ဘီးယက်)",
     "driveDetailMm": "မောင်းနှင်မှုစနစ် မြန်မာလို အသေးစိတ် ရှင်းလင်းချက်",
-    "axleCode": "အက်ဇယ်ကုဒ် (e.g. -02A / B02A / Ratio 4.100)",
-    "axleExplanationMm": "ဒစ်ဖရန်ရှယ် အချိုးနှင့် စက်သွားအရွယ်အစား ရှင်းပြချက်"
+    "axleCode": "အက်ဇယ်ကုဒ်",
+    "axleExplanationMm": "ဒစ်ဖရန်ရှယ် အချိုး ရှင်းပြချက်"
   },
   "fluids": {
     "engineOil": {
-      "viscosity": "ဆီအပျစ်အကျဲ (e.g. 0W-20 / 5W-30 သို့မဟုတ် 15W-40 CI-4/CK-4 ဒီဇယ်)",
-      "capacityWithFilter": "ဇကာပါ လီတာ (e.g. 3.7 Liters / 7.5 Liters / 33.0 Liters)",
-      "capacityWithoutFilter": "ဇကာမပါ လီတာ (e.g. 3.5 Liters / 7.0 Liters / 30.0 Liters)",
-      "interval": "လဲလှယ်ရမည့် ကာလ (e.g. 5,000 km သို့မဟုတ် ၆ လ)",
-      "standard": "ဆီစံနှုန်း (e.g. API SP / ILSAC GF-6A သို့မဟုတ် API CK-4 / JASO DH-2)"
+      "viscosity": "ဆီအပျစ်အကျဲ (e.g. 15W-40 CI-4/CH-4 ဒီဇယ် သို့မဟုတ် 0W-20 / 5W-30)",
+      "capacityWithFilter": "ဇကာပါ လီတာ (e.g. 6.0 Liters / 3.7 Liters)",
+      "capacityWithoutFilter": "ဇကာမပါ လီတာ (e.g. 5.5 Liters / 3.5 Liters)",
+      "interval": "လဲလှယ်ရမည့် ကာလ (e.g. 5,000 km သို့မဟုတ် နာရီ ၂၅၀ / ၆ လ)",
+      "standard": "ဆီစံနှုန်း (e.g. API CI-4 / CH-4 သို့မဟုတ် API SP)"
     },
     "transmissionFluid": {
-      "fluidType": "ဂီယာဆီ အတိအကျ အမျိုးအစား (e.g. Toyota Genuine CVT Fluid FE / Toyota ATF WS / ZF Lifeguard 8 / Gear Oil 80W-90 GL-4)",
-      "cautionNote": "အရေးကြီး သတိပေးချက် (e.g. CVT FE နှင့် TC မမှားစေရ / ATF WS လုံးဝ မထည့်ရ / ဆီမှားထည့်ပါက ဂီယာအိုး ပျက်စီးနိုင်သည်)",
-      "drainRefillCapacity": "ဆီဖောက်လဲ လီတာ (e.g. 3.5 Liters)",
-      "panDropFilterCapacity": "ဆီပန်ဖြုတ်လဲ လီတာ (e.g. 4.5 Liters)",
-      "totalDryCapacity": "အခြောက်ထည့် လီတာ (e.g. 6.5 Liters / 13.0 Liters)",
-      "inspectionMethod": "ဆီချိန်စစ်ဆေးနည်း (e.g. 35°C - 45°C Overflow Plug အဆင့်စစ်ဆေးခြင်း သို့မဟုတ် ဆီတိုင်းတံ Dipstick Hot Mark)"
+      "fluidType": "ဂီယာဆီ အတိအကျ အမျိုးအစား (e.g. Gear Oil 80W-90 GL-4 သို့မဟုတ် Toyota Genuine CVT Fluid FE)",
+      "cautionNote": "အရေးကြီး သတိပေးချက် (e.g. မန်နျူရယ်ဂီယာဆီ 80W-90 ကိုသာ သုံးပါ၊ အော်တိုဆီ ATF/CVT လုံးဝ မထည့်ရပါ)",
+      "drainRefillCapacity": "ဆီဖောက်လဲ လီတာ (e.g. 3.0 Liters)",
+      "panDropFilterCapacity": "ဆီပန်ဖြုတ်လဲ လီတာ",
+      "totalDryCapacity": "အခြောက်ထည့် လီတာ",
+      "inspectionMethod": "ဆီချိန်စစ်ဆေးနည်း"
     },
     "differentialFluid": {
-      "frontDiff": "ရှေ့ဒစ်ဆီ (e.g. 75W-85 GL-5 (0.8 L))",
-      "rearDiff": "နောက်ဒစ်ဆီ (e.g. 85W-90 GL-5 (1.4 L) သို့မဟုတ် 85W-140 GL-5 (8.5 L))",
-      "transferCase": "Transfer ဆီ (e.g. 75W-85 (0.8 L))"
+      "rearDiff": "နောက်ဒစ်ဆီ (e.g. 85W-140 GL-5 (2.5 - 3.0 L))"
     },
     "coolant": {
-      "type": "ရေတိုင်ကီ ကူလင်အမျိုးအစား (e.g. Toyota Super Long Life Coolant (SLLC Pink) / Hino LLC)",
-      "capacity": "ကူလင်ဆံ့ဝင်ဆံ့ (e.g. 5.5 Liters / 38.0 Liters)"
+      "type": "ရေတိုင်ကီ ကူလင်အမျိုးအစား (e.g. Heavy Duty Diesel LLC Anti-Freeze (Green/Pink))",
+      "capacity": "ကူလင်ဆံ့ဝင်ဆံ့ (e.g. 9.0 Liters)"
     },
-    "brakeFluid": "ဘရိတ်ဆီ (e.g. DOT 3 သို့မဟုတ် DOT 4 / ကားကြီး လေဘရိတ် Air Brake)",
-    "fuelTankCapacity": "ဆီတိုင်ကီဆံ့ဝင်ဆံ့ (e.g. 50 Liters / 80 Liters / 300 Liters)"
+    "brakeFluid": "ဘရိတ်ဆီ (e.g. DOT 4 သို့မဟုတ် လေဘရိတ် Air Brake)",
+    "fuelTankCapacity": "ဆီတိုင်ကီဆံ့ဝင်ဆံ့ (e.g. 70 Liters (ဒီဇယ်))"
   },
   "paintAndTrim": {
-    "code": "ဆေးကုဒ် (e.g. 070 / 209 / 1F7 / 300)",
-    "nameEn": "ဆေးအရောင် အင်္ဂလိပ်အမည် (e.g. White Pearl Crystal Shine / Alpine White)",
-    "nameMm": "ဆေးအရောင် မြန်မာအမည် (e.g. ပုလဲဖြူရောင် (၃ ထပ်ဆေး))",
-    "trimCode": "အတွင်းခန်းကုဒ် (e.g. FA20 / LCSW)",
-    "hex": "#F0EFEA"
+    "code": "ဆေးကုဒ်",
+    "nameEn": "ဆေးအရောင် အင်္ဂလိပ်အမည်",
+    "nameMm": "ဆေးအရောင် မြန်မာအမည်",
+    "trimCode": "အတွင်းခန်းကုဒ်",
+    "hex": "#2e7d32"
   },
   "plateBreakdown": [
     {
       "stampName": "MODEL",
-      "stampValue": "DBA-NZE141G-AWXEK",
-      "meaningMm": "DBA = ၂၀၀၅ အိတ်ဇောဓာတ်ငွေ့ ၇၅% လျှော့ချစံနှုန်း၊ NZE141 = 1.5L 2WD ကိုယ်ထည်၊ G = Wagon ဝက်ဂွန်၊ AWXEK = အော်တို CVT ဂီယာနှင့် X Grade"
-    },
-    {
-      "stampName": "ENGINE",
-      "stampValue": "1NZ-FE 1496cc",
-      "meaningMm": "1NZ-FE = 1.5L DOHC 16-Valve VVT-i ဓာတ်ဆီအင်ဂျင်"
-    },
-    {
-      "stampName": "FRAME NO / VIN",
-      "stampValue": "NZE141-9041234",
-      "meaningMm": "ကိုယ်ထည်ဘောင်နံပါတ် (Frame Number) ဖြစ်ပြီး 90xxxx စီးရီးအရ ၂၀၀၈ မော်ဒယ်ဖြစ်သည်"
-    },
-    {
-      "stampName": "COLOR / TRIM",
-      "stampValue": "070 / FA20",
-      "meaningMm": "070 = White Pearl ပုလဲဖြူရောင်၊ FA20 = အနက်ရောင် အတွင်းခန်း"
-    },
-    {
-      "stampName": "TRANS / AXLE",
-      "stampValue": "K310 - 02A",
-      "meaningMm": "K310 = Super CVT-i ဂီယာဘောက်၊ -02A = 7.5 လက်မ စက်သွားနှင့် ဒစ်ဖရန်ရှယ် အချိုး"
-    },
-    {
-      "stampName": "PLANT",
-      "stampValue": "A51",
-      "meaningMm": "တိုယိုတာ ဂျပန်နိုင်ငံ Central Auto စက်ရုံထုတ်"
+      "stampValue": "490QGB / 490QB",
+      "meaningMm": "အင်ဂျင်/ကား မော်ဒယ်ကုဒ် အဓိပ္ပာယ်"
     }
   ],
   "mechanicProTips": [
-    "ဝပ်ရှော့ သတိပေးချက် ၁ (ဥပမာ- ဂီယာဆီ CVT FE ကိုသာ သုံးပါ၊ TC သို့မဟုတ် ATF WS လုံးဝ မထည့်ရ)",
-    "ဝပ်ရှော့ သတိပေးချက် ၂ (ဥပမာ- တိုင်မင်သံကြိုးဖြစ်၍ အင်ဂျင်ဝိုင် ပုံမှန် ၅၀၀၀ ကီလိုတစ်ကြိမ် လဲလှယ်ပေးပါ)",
-    "ဥရောပ/အမေရိကန်ကား ဖြစ်ပါက အာရှကားနှင့် နှိုင်းယှဉ်ချက် (ဥပမာ- ZF ဂီယာဆီလဲလျှင် ပန်ခွက်ပါ တစ်ခါတည်း လဲရမည်)"
+    "ဝပ်ရှော့ သတိပေးချက် ၁",
+    "ဝပ်ရှော့ သတိပေးချက် ၂"
   ],
-  "plateLocationGuide": "နိမ်းပလိပ်ပြား ရှာဖွေနိုင်သည့် တည်နေရာ လမ်းညွှန် (ဥပမာ- အင်ဂျင်ခန်းအတွင်း Firewall နံရံ သို့မဟုတ် ယာဉ်မောင်းတံခါးတိုင် B-Pillar)"
+  "plateLocationGuide": "နိမ်းပလိပ်ပြား ရှာဖွေနိုင်သည့် တည်နေရာ လမ်းညွှန်"
 }
 Ensure all text explanations in Myanmar are fluent, mechanically accurate, and clear for auto technicians.`;
 
@@ -154,57 +126,97 @@ app.post('/api/decode-nameplate-image', async (req, res) => {
   // Clean data URL prefix if sent
   const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
 
-  try {
-    const promptText = `Analyze this automotive nameplate / VIN plate photo in high detail.
-Extract the Maker, Model, Production Year, Category (small, medium SUV/truck, heavy duty truck), Fuel System (Petrol, Diesel Common Rail, Unit Injector EUI, Hybrid), Engine Specs, Transmission Specs, Exact Fluid Types & Liters, Paint Code, Plate Line-by-Line Breakdown, and Myanmar Mechanic Pro Tips.
+  const promptText = `Analyze this automotive nameplate / engine plate / VIN plate photo in high detail.
+Extract the Maker, Model, Production Year, Category (small car, medium SUV/truck, commercial diesel engine/heavy truck), Fuel System (Mechanical Inline Pump, Petrol EFI, Diesel Common Rail, Unit Injector EUI, Hybrid), Engine Specs (Code, kW/HP, RPM, CC), Transmission Specs, Exact Fluid Types & Liters (15W-40 CI-4 or 0W-20, Gear oil 80W-90 GL-4 or CVT FE), Paint Code, Plate Line-by-Line Breakdown, and Myanmar Mechanic Pro Tips.
 ${note ? `Additional user note: "${note}"` : ''}
 Provide output strictly formatted as valid JSON matching the specified schema.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              mimeType,
-              data: cleanBase64,
+  // Tested & active multimodal vision models
+  const visionModels = ['gemini-3.5-flash', 'gemini-3-flash-preview'];
+  let lastError: any = null;
+
+  for (const modelName of visionModels) {
+    try {
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                mimeType,
+                data: cleanBase64,
+              },
             },
-          },
-          {
-            text: promptText,
-          },
-        ],
-      },
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION_NAMEPLATE,
-        responseMimeType: 'application/json',
-      },
-    });
+            {
+              text: promptText,
+            },
+          ],
+        },
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION_NAMEPLATE,
+          responseMimeType: 'application/json',
+        },
+      });
 
-    const text = response.text || '{}';
-    const parsedData = JSON.parse(text);
+      const rawText = response.text || '{}';
+      const cleanJsonText = rawText
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
 
-    return res.json({
-      success: true,
-      data: parsedData,
-      source: 'gemini-ai-vision',
-    });
-  } catch (error: any) {
-    console.warn('Gemini vision API error or quota limit:', error?.message || error);
+      const parsedData = JSON.parse(cleanJsonText);
 
-    // Resilient Fallback: If user provided a note or text, decode that; otherwise provide Toyota Wish 1.8X (2nd Gen)
-    // as it matches the primary vehicle being tested by the technician in Myanmar
-    const fallbackData = note 
-      ? decodePlateFromTextOrQuery(note) 
-      : INSTANT_SAMPLE_RESULTS['sample-wish-blue'];
+      // Normalize common alternate keys if model returned them
+      if (parsedData) {
+        if (!parsedData.modelName && parsedData.model) {
+          parsedData.modelName = parsedData.model;
+        }
+        if (!parsedData.maker && parsedData.brand) {
+          parsedData.maker = parsedData.brand;
+        }
+        if (!parsedData.burmeseName) {
+          parsedData.burmeseName = `${parsedData.maker || ''} ${parsedData.modelName || 'နိမ်းပြားစစ်ဆေးချက်'}`;
+        }
 
+        // If plate breakdown is missing or empty, build one from available stamps
+        if (!parsedData.plateBreakdown || parsedData.plateBreakdown.length === 0) {
+          parsedData.plateBreakdown = [
+            {
+              stampName: 'MODEL / ENGINE',
+              stampValue: parsedData.engine?.code || parsedData.modelName || 'MODEL',
+              meaningMm: 'နိမ်းပလိပ်ပြားပေါ်ရှိ မော်ဒယ်နှင့် အင်ဂျင်ကုဒ်'
+            }
+          ];
+        }
+
+        return res.json({
+          success: true,
+          data: parsedData,
+          source: `gemini-${modelName}`,
+        });
+      }
+    } catch (err: any) {
+      console.warn(`Vision model ${modelName} failed:`, err?.message || err);
+      lastError = err;
+    }
+  }
+
+  // If user provided a note or vehicle text query, decode that
+  if (note && note.trim()) {
+    const fallbackData = decodePlateFromTextOrQuery(note);
     return res.json({
       success: true,
       data: fallbackData,
-      source: 'offline-smart-template',
-      noticeMm: 'စမတ်ကျသော အော့ဖ်လိုင်း အင်ဂျင်နီယာစနစ်မှ နိမ်းပလိပ်ပြား အချက်အလက်များကို တိကျစွာ ခွဲခြမ်းစိတ်ဖြာ ပေးထားပါသည်ခင်ဗျာ။',
+      source: 'rule-based-decoder',
+      noticeMm: 'ကားနံပါတ်စာသားမှ အချက်အလက်များကို တိကျစွာ ခွဲခြမ်းစိတ်ဖြာ ပေးထားပါသည်ခင်ဗျာ။',
     });
   }
+
+  return res.status(500).json({
+    success: false,
+    error: 'ပုံရိပ်မှ နိမ်းပလိပ်ပြား စာလုံးများကို အပြည့်အစုံ မဖတ်နိုင်သေးပါ။ ပလိတ်ပြားကို အလင်းရောင် ကောင်းစွာထားပြီး ပိုမိုပြတ်သားသော ပုံဖြင့် ပြန်လည် စမ်းသပ်ပေးပါခင်ဗျာ။',
+    detail: lastError?.message || 'AI Vision Temporary Issue'
+  });
 });
 
 // Endpoint: AI Text / VIN / Code Nameplate Decoder
@@ -236,7 +248,7 @@ Identify:
 Provide output strictly formatted as valid JSON matching the specified schema.`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-3.5-flash',
       contents: promptText,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION_NAMEPLATE,

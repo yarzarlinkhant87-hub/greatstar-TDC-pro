@@ -20,7 +20,10 @@ import {
   Settings,
   Palette,
   Layers,
-  CheckCircle2
+  CheckCircle2,
+  Zap,
+  Flashlight,
+  SwitchCamera
 } from 'lucide-react';
 import { ToyotaVehicle, UniversalPlateScanResult } from '../types/nameplate';
 import { INSTANT_SAMPLE_RESULTS } from '../data/sampleNameplateResults';
@@ -59,11 +62,25 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
   const videoStreamRef = useRef<MediaStream | null>(null);
   const [isLiveCameraActive, setIsLiveCameraActive] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-
-  if (!isOpen) return null;
+  const [isAutoScanEnabled, setIsAutoScanEnabled] = useState<boolean>(true);
+  const [autoScanProgress, setAutoScanProgress] = useState<number>(0);
+  const [isTorchOn, setIsTorchOn] = useState<boolean>(false);
+  const [hasTorchSupport, setHasTorchSupport] = useState<boolean>(false);
+  const [cameraFacing, setCameraFacing] = useState<'environment' | 'user'>('environment');
 
   // Real-world plate samples for instant zero-friction testing
   const sampleNameplates = [
+    {
+      id: 'sample-yunnei-490',
+      title: 'Yunnei 490QB (တရုတ်ဒီဇယ်အင်ဂျင်ပြား - ပုံထဲက အစိမ်းပြား)',
+      plateCode: '490QGB / 48 kW @ 3200 r/min',
+      badge: 'ဒီဇယ် အင်ဂျင်ပြား (Diesel Engine)',
+      brand: 'Yunnei / FAW',
+      category: 'ဒီဇယ် ကုန်တင်ကားလတ် / ယန္တရား',
+      desc: 'Chengdu Yunnei 48kW 3200rpm၊ 15W-40 CI-4 ဆီ၊ တိုင်မင်စက်သွားဂီယာစနစ်၊ ပုံထဲရှိ မူရင်းအစိမ်းရောင်ပြား',
+      color: 'border-emerald-500/50 bg-emerald-950/40',
+      sampleQuery: '490QGB 48kW 3200rpm BNK17001613 XK06-002-00105 成都云内'
+    },
     {
       id: 'sample-wish-blue',
       title: 'Toyota Wish 1.8X (DBA-ZGE20G - ပုံထဲက ကားပြာ)',
@@ -182,22 +199,27 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
     setNoticeMessage(null);
     setScanResult(null);
     setIsSaved(false);
-    setScanProgress(20);
-    setScanStepLabel('ဖုန်းထဲရှိ ပုံရိပ်ကို စကန်ကွက်အတွင်း ထည့်သွင်းပြီး AI စနစ်ဖြင့် ဖတ်ရှုနေပါသည်...');
+    setScanProgress(15);
+    setScanStepLabel('နိမ်းပလိပ်ပြား ပုံရိပ်ကို အမြန်ချုံ့ပြီး လက်ခံရရှိပါပြီ...');
 
     const timer1 = setTimeout(() => {
-      setScanProgress(55);
-      setScanStepLabel('မော်ဒယ်ကုဒ်၊ အင်ဂျင်ကုဒ်နှင့် Chassis VIN နံပါတ်များကို ခွဲခြမ်းနေပါသည်...');
-    }, 400);
+      setScanProgress(35);
+      setScanStepLabel('AI Vision စနစ်ဖြင့် နိမ်းပြားစာလုံးများ (Maker, Engine Model, kW, RPM, VIN) ကို ဖတ်ရှုနေပါသည်...');
+    }, 600);
 
     const timer2 = setTimeout(() => {
-      setScanProgress(85);
-      setScanStepLabel('ဂီယာဆီစံနှုန်း၊ ဆီလီတာနှင့် ဝပ်ရှော့သတိပေးချက်များ တွက်ချက်နေပါသည်...');
-    }, 850);
+      setScanProgress(68);
+      setScanStepLabel('အင်ဂျင်ဝိုင်၊ ဒီဇယ်စနစ်၊ လဲလှယ်ရမည့်ဆီနှင့် ဝပ်ရှော့သတိပေးချက်များ တွက်ချက်နေပါသည်...');
+    }, 2500);
+
+    const timer3 = setTimeout(() => {
+      setScanProgress(88);
+      setScanStepLabel('အချက်အလက်များကို အသေးစိတ် စစ်ဆေးအတည်ပြုနေပါသည်...');
+    }, 5500);
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       const response = await fetch('/api/decode-nameplate-image', {
         method: 'POST',
@@ -208,6 +230,9 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
       clearTimeout(timeoutId);
 
       const resJson = await response.json();
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
       setScanProgress(100);
       setScanStepLabel('စကန်ဖတ်မှု အောင်မြင်ပါသည်!');
 
@@ -217,17 +242,19 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
           setNoticeMessage(resJson.noticeMm);
         }
       } else {
-        // Fallback to blue Toyota Wish sample with clear notice
-        setScanResult(INSTANT_SAMPLE_RESULTS['sample-wish-blue']);
-        setNoticeMessage('အော့ဖ်လိုင်း စမတ်တမ်းပလိတ်မှ ဓာတ်ပုံပါ Toyota Wish နိမ်းပလိပ်ပြား အချက်အလက်ကို ဖော်ပြပေးထားပါသည်ခင်ဗျာ။');
+        setErrorMessage(resJson.error || 'ပုံရိပ်မှ နိမ်းပလိပ်ပြား စာလုံးများကို အပြည့်အစုံ မဖတ်နိုင်သေးပါ။ အလင်းရောင် ကောင်းစွာထားပြီး ပိုမိုပြတ်သားသော ဓာတ်ပုံဖြင့် ပြန်လည် စမ်းသပ်ပေးပါခင်ဗျာ။');
       }
     } catch (err: any) {
-      console.warn('Image processing fallback:', err);
+      console.warn('Image processing error:', err);
       clearTimeout(timer1);
       clearTimeout(timer2);
+      clearTimeout(timer3);
       setScanProgress(100);
-      setScanResult(INSTANT_SAMPLE_RESULTS['sample-wish-blue']);
-      setNoticeMessage('အင်တာနက် အဆက်အသွယ် မလိုအပ်ဘဲ စမတ်တမ်းပလိတ်မှ နိမ်းပြားအချက်အလက်ကို ချက်ချင်း ဖော်ပြပေးထားပါသည်ခင်ဗျာ။');
+      setErrorMessage(
+        err.name === 'AbortError'
+          ? 'အချိန်ကြာမြင့်သွားပါသဖြင့် ပြတ်တောက်သွားပါသည်။ ပိုမိုရှင်းလင်းသော ပုံဖြင့် ပြန်လည် စမ်းသပ်ပေးပါခင်ဗျာ။'
+          : 'နိမ်းပလိပ်ပြား ပုံကို AI ဖြင့် ဖတ်ရှုရာတွင် ချို့ယွင်းချက် ဖြစ်ပေါ်ခဲ့ပါသည်။ ပြန်လည် ကြိုးစားပေးပါခင်ဗျာ။'
+      );
     } finally {
       setIsScanning(false);
     }
@@ -328,12 +355,11 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
           const rawDataUrl = event.target?.result as string;
           if (!rawDataUrl) return;
 
-          setPreviewImage(rawDataUrl);
-
+          // Downscale immediately BEFORE putting into previewImage or state to prevent mobile RAM crashing
           const img = new Image();
           img.onload = () => {
             try {
-              const MAX_SIZE = 1200;
+              const MAX_SIZE = 960; // 960px resolution is ultra sharp for plate text and stays under 100KB
               let width = img.width || 800;
               let height = img.height || 600;
 
@@ -355,17 +381,25 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
               const ctx = canvas.getContext('2d');
               if (ctx) {
                 ctx.drawImage(img, 0, 0, width, height);
-                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-                handleProcessImage(compressedDataUrl, 'image/jpeg');
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.72);
+                setPreviewImage(compressedDataUrl);
+                const base64Clean = compressedDataUrl.includes(',') ? compressedDataUrl.split(',')[1] : compressedDataUrl;
+                handleProcessImage(base64Clean, 'image/jpeg');
               } else {
-                handleProcessImage(rawDataUrl, file.type || 'image/jpeg');
+                setPreviewImage(rawDataUrl);
+                const base64Clean = rawDataUrl.includes(',') ? rawDataUrl.split(',')[1] : rawDataUrl;
+                handleProcessImage(base64Clean, file.type || 'image/jpeg');
               }
-            } catch (canvasErr) {
-              handleProcessImage(rawDataUrl, file.type || 'image/jpeg');
+            } catch {
+              setPreviewImage(rawDataUrl);
+              const base64Clean = rawDataUrl.includes(',') ? rawDataUrl.split(',')[1] : rawDataUrl;
+              handleProcessImage(base64Clean, file.type || 'image/jpeg');
             }
           };
           img.onerror = () => {
-            handleProcessImage(rawDataUrl, file.type || 'image/jpeg');
+            setPreviewImage(rawDataUrl);
+            const base64Clean = rawDataUrl.includes(',') ? rawDataUrl.split(',')[1] : rawDataUrl;
+            handleProcessImage(base64Clean, file.type || 'image/jpeg');
           };
           img.src = rawDataUrl;
         } catch (innerErr) {
@@ -387,6 +421,26 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
     }
   };
 
+  // Web Audio API beep for scan feedback
+  const playScanBeep = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(950, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1600, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+    } catch {}
+  };
+
   const stopLiveCamera = () => {
     if (videoStreamRef.current) {
       try {
@@ -395,40 +449,59 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
       videoStreamRef.current = null;
     }
     if (videoRef.current) {
-      videoRef.current.srcObject = null;
+      try {
+        videoRef.current.srcObject = null;
+      } catch {}
     }
     setIsLiveCameraActive(false);
+    setIsTorchOn(false);
+    setAutoScanProgress(0);
   };
 
-  const startLiveCamera = async () => {
+  const startLiveCamera = async (facing: 'environment' | 'user' = cameraFacing, triggerFallbackOnFail: boolean = false) => {
     setErrorMessage(null);
     setNoticeMessage(null);
-    setCameraError(null);
+    setAutoScanProgress(0);
 
     try {
       if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setCameraError('ဤဘရောက်ဇာတွင် တိုက်ရိုက်ကင်မရာ မထောက်ပံ့ပါ (အောက်ပါ "ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်မည်" သို့မဟုတ် "ဖုန်းထဲရှိပုံ" ဖြင့် သုံးနိုင်ပါသည်)');
+        if (triggerFallbackOnFail) {
+          fileInputCameraRef.current?.click();
+        }
         return;
       }
     } catch {
-      setCameraError('အောက်ပါ "ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်မည်" သို့မဟုတ် "ဖုန်းထဲရှိပုံ" ဖြင့် စကင်ဖတ်နိုင်ပါသည်ခင်ဗျာ။');
+      if (triggerFallbackOnFail) {
+        fileInputCameraRef.current?.click();
+      }
       return;
+    }
+
+    if (videoStreamRef.current) {
+      try {
+        videoStreamRef.current.getTracks().forEach((track) => track.stop());
+      } catch {}
+      videoStreamRef.current = null;
     }
 
     try {
       let stream: MediaStream | null = null;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
+          video: { 
+            facingMode: { ideal: facing },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
           audio: false
         });
-      } catch (e1) {
+      } catch {
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'environment' },
+            video: { facingMode: facing },
             audio: false
           });
-        } catch (e2) {
+        } catch {
           stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         }
       }
@@ -436,29 +509,67 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
       if (stream) {
         videoStreamRef.current = stream;
         setIsLiveCameraActive(true);
+        setCameraFacing(facing);
+
+        try {
+          const track = stream.getVideoTracks()[0];
+          const capabilities: any = track?.getCapabilities?.() || {};
+          setHasTorchSupport(Boolean(capabilities.torch));
+        } catch {}
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play().catch(() => {});
         }
       } else {
         stopLiveCamera();
-        setCameraError('ကင်မရာ မပွင့်နိုင်သေးပါ။ အောက်ပါ "ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်မည်" ခလုတ်ကို နှိပ်၍ သုံးနိုင်ပါသည်ခင်ဗျာ။');
+        if (triggerFallbackOnFail) {
+          fileInputCameraRef.current?.click();
+        }
       }
     } catch (err: any) {
       console.warn('getUserMedia error:', err);
       stopLiveCamera();
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || err.name === 'SecurityError') {
-        setCameraError('ကင်မရာ ခွင့်ပြုချက် လိုအပ်ပါသည် (သို့မဟုတ်) အောက်ပါ "ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်မည်" ခလုတ်ဖြင့် ၁၀၀% ချက်ချင်း ရိုက်ယူနိုင်ပါသည်ခင်ဗျာ။');
-      } else {
-        setCameraError('အောက်ပါ "ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်မည်" သို့မဟုတ် "ဖုန်းထဲရှိပုံ" ဖြင့် စကင်ဖတ်နိုင်ပါသည်ခင်ဗျာ။');
+      if (triggerFallbackOnFail) {
+        fileInputCameraRef.current?.click();
       }
     }
+  };
+
+  const toggleTorch = async () => {
+    try {
+      const track = videoStreamRef.current?.getVideoTracks()[0];
+      if (track) {
+        const nextState = !isTorchOn;
+        await track.applyConstraints({
+          advanced: [{ torch: nextState } as any]
+        });
+        setIsTorchOn(nextState);
+      }
+    } catch (err) {
+      console.warn('Torch toggle error:', err);
+    }
+  };
+
+  const flipCamera = async () => {
+    const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    setCameraFacing(nextFacing);
+    await startLiveCamera(nextFacing);
   };
 
   const captureFromLiveCamera = () => {
     if (!videoRef.current) return;
     try {
       const video = videoRef.current;
+      if (video.videoWidth === 0 || video.videoHeight === 0) return;
+
+      playScanBeep();
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try {
+          navigator.vibrate([60, 40, 80]);
+        } catch {}
+      }
+
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth || 1280;
       canvas.height = video.videoHeight || 720;
@@ -500,11 +611,35 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
     };
   }, []);
 
+  // Automatic Hands-Free Scanner Loop:
+  // When live camera is running and Auto-Scan is enabled, it automatically counts down 2.2 seconds while aiming
+  // and captures without the user having to click any button!
+  useEffect(() => {
+    let intervalId: any = null;
+    if (isLiveCameraActive && isAutoScanEnabled && !isScanning && !scanResult && !previewImage) {
+      intervalId = setInterval(() => {
+        setAutoScanProgress((prev) => {
+          if (prev >= 100) {
+            captureFromLiveCamera();
+            return 0;
+          }
+          return prev + 5; // 20 steps * 110ms ~ 2.2 seconds smooth progression
+        });
+      }, 110);
+    } else {
+      setAutoScanProgress(0);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isLiveCameraActive, isAutoScanEnabled, isScanning, scanResult, previewImage]);
+
   useEffect(() => {
     if (!isOpen) {
       stopLiveCamera();
     } else if (activeTab === 'camera' && !scanResult && !previewImage) {
-      // Auto-start camera when modal opens, just like a QR scanner!
+      // Auto-start camera when modal opens
       startLiveCamera().catch(() => {});
     }
   }, [isOpen, activeTab]);
@@ -577,6 +712,8 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
     setIsSaved(true);
     onVehicleSaved(cleanVehicle);
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-fade-in">
@@ -664,287 +801,291 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
 
         {/* Main Content Area */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
-          {/* TAB 1: Camera Photo Capture & Clean Viewfinder */}
+          {/* TAB 1: Camera Photo Capture & Clean Spacious Viewfinder */}
           {activeTab === 'camera' && !scanResult && (
             <div className="space-y-4">
-              {/* Header Info & Direct Action Buttons */}
-              <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-                <div>
-                  <h4 className="text-sm sm:text-base font-bold text-white font-['Padauk',sans-serif] flex items-center gap-2">
-                    <span>နိမ်းပလိပ်ပြား စကန်ဖတ်စက် (QR Scanner Style)</span>
-                  </h4>
-                  <p className="text-[11px] text-slate-400 font-['Padauk',sans-serif]">
-                    ဖုန်းဘေ QR ကုတ် ဖတ်သလို လေးထောင့်အကွက်ဘောင်အတွင်း ချိန်ထားပါ
-                  </p>
-                </div>
+              {/* PRIMARY VIEWPORT: Spacious, Uncluttered & Wide */}
+              <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden border-2 border-amber-500/60 bg-slate-950 shadow-2xl flex flex-col items-center justify-center">
+                {previewImage ? (
+                  /* 1. WIDE HIGH-DEF PHOTO PREVIEW (မြင်ကွင်းကျယ်ကျယ် ပုံရိပ်ကြည့်ရှုကွက် - မကွယ်၊ မကျဉ်းစေရ) */
+                  <div className="w-full relative flex flex-col items-center justify-center bg-slate-950 p-2 sm:p-3">
+                    {/* Top Floating Badge & Action Bar */}
+                    <div className="w-full flex items-center justify-between pb-2 px-1">
+                      <span className="text-[11px] font-bold text-amber-400 font-['Padauk',sans-serif] flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30">
+                        <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
+                        <span>ရွေးချယ်ထားသော နိမ်းပလိပ်ပြား ပုံရိပ်</span>
+                      </span>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={isLiveCameraActive ? stopLiveCamera : startLiveCamera}
-                    className={`px-3 py-2 text-xs font-bold rounded-xl transition cursor-pointer shadow-md flex items-center gap-1.5 font-['Padauk',sans-serif] ${
-                      isLiveCameraActive
-                        ? 'bg-red-500/90 hover:bg-red-500 text-white'
-                        : 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black'
-                    }`}
-                  >
-                    {isLiveCameraActive ? (
-                      <>
-                        <X className="w-3.5 h-3.5" />
-                        <span>ကင်မရာ ပိတ်မည်</span>
-                      </>
-                    ) : (
-                      <>
-                        <Camera className="w-3.5 h-3.5" />
-                        <span>ကင်မရာ ဖွင့်မည်</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      stopLiveCamera();
-                      fileInputGalleryRef.current?.click();
-                    }}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer border border-slate-700 flex items-center gap-1.5 font-['Padauk',sans-serif]"
-                  >
-                    <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
-                    <span>ဖုန်းထဲရှိပုံ</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* THE QR-STYLE SCANNER VIEWFINDER BOX (ဖုန်းဘေ QR ကုတ်ဖတ်စက် ပုံစံ လေးထောင့်စကန်ကွက်) */}
-              <div className="relative rounded-3xl overflow-hidden border-2 border-amber-500/80 bg-slate-950 p-4 sm:p-6 shadow-2xl flex flex-col items-center justify-center">
-                {/* Background Holographic Grid Pattern */}
-                <div 
-                  className="absolute inset-0 opacity-15 pointer-events-none"
-                  style={{
-                    backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(245, 158, 11, 0.45) 1px, transparent 0)',
-                    backgroundSize: '24px 24px'
-                  }}
-                />
-
-                {/* THE RECTANGULAR QR TARGET CUTOUT FRAME (လေးထောင့်အကွက်ဘောင်) */}
-                <div className="relative w-full max-w-[340px] sm:max-w-[420px] aspect-[4/3] rounded-2xl overflow-hidden border border-amber-500/40 bg-black flex items-center justify-center shadow-2xl shadow-black">
-                  {/* 4 Glowing Neon Viewfinder Corners (Thick 4px QR Brackets) */}
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-amber-400 rounded-tl-xl pointer-events-none shadow-[0_0_15px_#f59e0b] z-30" />
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-amber-400 rounded-tr-xl pointer-events-none shadow-[0_0_15px_#f59e0b] z-30" />
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-amber-400 rounded-bl-xl pointer-events-none shadow-[0_0_15px_#f59e0b] z-30" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-amber-400 rounded-br-xl pointer-events-none shadow-[0_0_15px_#f59e0b] z-30" />
-
-                  {/* Moving Laser Beam (Smooth vertical sweep like QR scanner) */}
-                  <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_20px_#f59e0b] z-40 pointer-events-none animate-laser" />
-
-                  {/* Center Target Crosshairs */}
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20 opacity-35">
-                    <div className="w-16 h-16 rounded-full border border-dashed border-amber-400/60 flex items-center justify-center">
-                      <div className="w-3 h-3 border-t-2 border-l-2 border-amber-400" />
-                    </div>
-                  </div>
-
-                  {/* Inside Frame: Persistent Video Element (Never unmounted) */}
-                  <video
-                    ref={videoRef}
-                    playsInline
-                    muted
-                    autoPlay
-                    className={`w-full h-full object-cover ${isLiveCameraActive ? 'block' : 'hidden'}`}
-                  />
-
-                  {isLiveCameraActive ? (
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="absolute top-2 left-2 bg-red-600/90 text-white text-[10px] font-mono font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow z-30 animate-pulse pointer-events-auto">
-                        <span className="w-2 h-2 rounded-full bg-white" />
-                        <span>LIVE SCAN</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={stopLiveCamera}
-                        className="absolute top-2 right-2 bg-black/80 hover:bg-black text-white p-1.5 rounded-xl border border-white/20 transition cursor-pointer z-30 pointer-events-auto"
-                        title="ကင်မရာ ပိတ်မည်"
-                      >
-                        <X className="w-4 h-4 text-red-400" />
-                      </button>
-                    </div>
-                  ) : previewImage ? (
-                    <div className="w-full h-full relative flex items-center justify-center bg-black">
-                      <img 
-                        src={previewImage} 
-                        alt="Uploaded Plate" 
-                        className="w-full h-full object-contain"
-                      />
-                      <div className="absolute bottom-2 left-2 bg-slate-950/90 text-amber-400 text-[10px] font-mono px-2 py-0.5 rounded border border-amber-500/40 z-30">
-                        ဖုန်းထဲမှ ရွေးထားသော နိမ်းပြားပုံ
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewImage(null)}
-                        className="absolute top-2 right-2 bg-black/80 hover:bg-black text-white p-1.5 rounded-xl border border-white/20 transition cursor-pointer z-30"
-                        title="ပုံဖယ်မည်"
-                      >
-                        <X className="w-4 h-4 text-slate-300" />
-                      </button>
-                    </div>
-                  ) : simulatedPlateId ? (
-                    <div className="w-full p-2">
-                      <RealisticNameplateVisual plateId={simulatedPlateId} className="w-full" />
-                    </div>
-                  ) : (
-                    <div className="p-4 text-center space-y-3 z-10 max-w-xs">
-                      <Scan className="w-10 h-10 text-amber-400/90 mx-auto animate-pulse" />
-                      <div className="space-y-1">
-                        <div className="text-xs sm:text-sm font-bold text-slate-100 font-['Padauk',sans-serif]">
-                          နိမ်းပလိပ်ပြားကို လေးထောင့်ဘောင်အတွင်း ချိန်ထားပါ
-                        </div>
-                        <p className="text-[11px] text-slate-400 font-['Padauk',sans-serif]">
-                          {cameraError ? cameraError : 'ဖုန်းကင်မရာဖြင့် ဓာတ်ပုံရိုက်ဖတ်နိုင်ပြီး ဖုန်းထဲရှိပုံကိုလည်း ထည့်သွင်းဖတ်နိုင်ပါသည်'}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => fileInputCameraRef.current?.click()}
-                          className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-md transition cursor-pointer font-['Padauk',sans-serif] active:scale-95 flex items-center justify-center gap-1.5"
+                          className="px-2.5 py-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black flex items-center gap-1 shadow cursor-pointer font-['Padauk',sans-serif]"
+                          title="ကင်မရာ အသစ်ရိုက်မည်"
                         >
-                          <Camera className="w-4 h-4 text-slate-950" />
-                          <span>ဖုန်းကင်မရာဖြင့် ရိုက်မည်</span>
+                          <Camera className="w-3.5 h-3.5 text-slate-950" />
+                          <span>အသစ်ရိုက်မည်</span>
                         </button>
+
                         <button
                           type="button"
                           onClick={() => fileInputGalleryRef.current?.click()}
-                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 transition cursor-pointer font-['Padauk',sans-serif] flex items-center justify-center gap-1.5"
+                          className="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 shadow cursor-pointer font-['Padauk',sans-serif] border border-slate-700"
+                          title="ဖုန်းထဲရှိ အခြားပုံ ရွေးမည်"
                         >
                           <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
-                          <span>ဖုန်းထဲရှိပုံ</span>
+                          <span>အခြားပုံ</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPreviewImage(null)}
+                          className="p-1 rounded-xl bg-slate-800 hover:bg-red-950 text-slate-300 hover:text-red-400 cursor-pointer transition border border-slate-700"
+                          title="ပုံဖယ်မည်"
+                        >
+                          <X className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Clear Burmese QR Alignment Guide Under Frame */}
-                <div className="text-center space-y-0.5 mt-3">
-                  <div className="text-xs sm:text-sm font-bold text-amber-300 font-['Padauk',sans-serif] flex items-center justify-center gap-1.5">
-                    <Scan className="w-4 h-4 text-amber-400" />
-                    <span>နိမ်းပလိပ်ပြားကို လေးထောင့်ဘောင်အတွင်း ချိန်ထားပါ</span>
+                    {/* Image Viewer Frame */}
+                    <div className="relative w-full rounded-2xl overflow-hidden bg-black flex items-center justify-center border border-slate-800">
+                      <img 
+                        src={previewImage} 
+                        alt="Uploaded Plate" 
+                        className="w-full h-auto max-h-[46vh] sm:max-h-[52vh] object-contain rounded-xl"
+                      />
+
+                      {/* Scanning Laser Beam */}
+                      {isScanning && (
+                        <div className="absolute inset-x-0 h-1.5 bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_25px_#f59e0b] z-30 pointer-events-none animate-laser" />
+                      )}
+                    </div>
                   </div>
-                  <p className="text-[11px] text-slate-400 font-['Padauk',sans-serif]">
-                    (ဖုန်းဘေ QR ကုတ် ဖတ်သလို ဘောင်အတွင်း တည့်တည့်ထားပြီး ဖတ်ရှုပါမည်)
-                  </p>
-                </div>
+                ) : isLiveCameraActive ? (
+                  /* 2. LIVE STREAM VIEWFINDER */
+                  <div className="w-full h-full relative flex items-center justify-center bg-black min-h-[320px]">
+                    <video
+                      ref={videoRef}
+                      playsInline
+                      muted
+                      autoPlay
+                      className="w-full h-full max-h-[52vh] object-cover"
+                    />
 
-                {/* Bottom Actions */}
-                <div className="w-full max-w-lg mt-3">
-                  {isScanning ? (
-                    <div className="bg-slate-950/95 border border-amber-500/50 rounded-2xl p-3.5 backdrop-blur-md space-y-2.5 shadow-2xl">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-amber-300 font-['Padauk',sans-serif] flex items-center gap-1.5">
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400 shrink-0" />
-                          <span>{scanStepLabel}</span>
+                    {/* 4 Neon Viewfinder Corners */}
+                    <div className="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-amber-400 rounded-tl-xl pointer-events-none shadow-[0_0_15px_#f59e0b] z-20" />
+                    <div className="absolute top-4 right-4 w-8 h-8 border-t-4 border-r-4 border-amber-400 rounded-tr-xl pointer-events-none shadow-[0_0_15px_#f59e0b] z-20" />
+                    <div className="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-amber-400 rounded-bl-xl pointer-events-none shadow-[0_0_15px_#f59e0b] z-20" />
+                    <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-amber-400 rounded-br-xl pointer-events-none shadow-[0_0_15px_#f59e0b] z-20" />
+
+                    {/* Laser Sweep */}
+                    <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent shadow-[0_0_20px_#f59e0b] z-20 pointer-events-none animate-laser" />
+
+                    {/* Top Status Bar */}
+                    <div className="absolute top-3 inset-x-3 flex items-center justify-between z-30">
+                      <div className="flex items-center gap-1.5">
+                        <span className="bg-red-600/90 text-white text-[10px] font-mono font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow animate-pulse">
+                          <span className="w-2 h-2 rounded-full bg-white" />
+                          <span>LIVE</span>
                         </span>
-                        <span className="font-mono font-bold text-amber-400">{scanProgress}%</span>
+                        {isAutoScanEnabled && (
+                          <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow font-['Padauk',sans-serif]">
+                            <Zap className="w-3 h-3 text-slate-950" />
+                            <span>AUTO-SCAN</span>
+                          </span>
+                        )}
                       </div>
-                      <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
-                        <div 
-                          className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-300 transition-all duration-300 rounded-full"
-                          style={{ width: `${scanProgress}%` }}
-                        />
+
+                      <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md p-1 rounded-2xl border border-white/20">
+                        {hasTorchSupport && (
+                          <button
+                            type="button"
+                            onClick={toggleTorch}
+                            className={`p-1.5 rounded-xl border transition cursor-pointer ${
+                              isTorchOn ? 'bg-amber-500 text-slate-950 border-amber-400' : 'text-white border-transparent hover:bg-white/10'
+                            }`}
+                            title="မီးထိုးမည်"
+                          >
+                            <Flashlight className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={flipCamera}
+                          className="p-1.5 rounded-xl text-white hover:bg-white/10 transition cursor-pointer"
+                          title="ကင်မရာပြောင်းမည်"
+                        >
+                          <SwitchCamera className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={stopLiveCamera}
+                          className="p-1.5 rounded-xl text-red-400 hover:bg-red-950/60 transition cursor-pointer"
+                          title="ကင်မရာ ပိတ်မည်"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                  ) : isLiveCameraActive ? (
-                    <div className="flex flex-wrap items-center justify-center gap-2.5">
-                      <button
-                        type="button"
-                        onClick={captureFromLiveCamera}
-                        className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/30 flex items-center gap-2 font-['Padauk',sans-serif] active:scale-95"
-                      >
-                        <Scan className="w-4 h-4 text-slate-950" />
-                        <span>Scanဖတ်မည် (Scan Now)</span>
-                      </button>
 
-                      <button
-                        type="button"
-                        onClick={stopLiveCamera}
-                        className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer border border-slate-700 font-['Padauk',sans-serif] flex items-center gap-1.5"
-                      >
-                        <X className="w-4 h-4 text-red-400" />
-                        <span>ကင်မရာ ပိတ်မည်</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          stopLiveCamera();
-                          fileInputGalleryRef.current?.click();
-                        }}
-                        className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer border border-slate-700 font-['Padauk',sans-serif] flex items-center gap-1.5"
-                      >
-                        <ImageIcon className="w-4 h-4 text-amber-400" />
-                        <span>ဖုန်းထဲရှိပုံ</span>
-                      </button>
+                    {/* Auto-Scan Progress Bar */}
+                    {isAutoScanEnabled && !isScanning && (
+                      <div className="absolute bottom-3 inset-x-4 bg-slate-950/85 backdrop-blur-md rounded-2xl p-2.5 border border-amber-500/40 text-center space-y-1.5 z-30">
+                        <div className="flex items-center justify-between text-xs font-bold text-amber-300 font-['Padauk',sans-serif]">
+                          <span className="flex items-center gap-1.5">
+                            <Zap className="w-3.5 h-3.5 text-amber-400 animate-bounce" />
+                            <span>နိမ်းပလိပ်ပြားကို ငြိမ်ငြိမ်လေး ချိန်ထားပါ...</span>
+                          </span>
+                          <span className="font-mono text-xs text-amber-400 font-bold">{Math.round(autoScanProgress)}%</span>
+                        </div>
+                        <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-amber-300 rounded-full transition-all duration-100 ease-linear"
+                            style={{ width: `${autoScanProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : simulatedPlateId ? (
+                  /* 3. SIMULATED PLATE */
+                  <div className="w-full p-4 flex items-center justify-center">
+                    <RealisticNameplateVisual plateId={simulatedPlateId} className="w-full max-w-lg" />
+                  </div>
+                ) : (
+                  /* 4. CLEAN DIRECT LAUNCH PAD (ရှင်းလင်းသော အဓိက Scan မျက်နှာပြင်) */
+                  <div className="p-6 sm:p-8 text-center space-y-4 max-w-md w-full">
+                    <div className="w-16 h-16 mx-auto rounded-3xl bg-amber-500/20 border-2 border-amber-500/50 flex items-center justify-center text-amber-400 shadow-xl shadow-amber-500/20">
+                      <Scan className="w-8 h-8 animate-pulse text-amber-400" />
                     </div>
-                  ) : (previewImage || simulatedPlateId) ? (
-                    <div className="flex flex-wrap items-center justify-center gap-2.5">
-                      <button
-                        onClick={() => {
-                          if (previewImage) {
-                            const base64Data = previewImage.includes(',') ? previewImage.split(',')[1] : previewImage;
-                            handleProcessImage(base64Data);
-                          } else if (simulatedPlateId) {
-                            handleSampleSelect(simulatedPlateId, '', true);
-                          }
-                        }}
-                        className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/30 flex items-center gap-2 font-['Padauk',sans-serif]"
-                      >
-                        <Scan className="w-4 h-4" />
-                        <span>Scanဖတ်မည် (Scan Now)</span>
-                      </button>
 
-                      <button
-                        onClick={() => {
-                          setPreviewImage(null);
-                          setSimulatedPlateId(null);
-                          startLiveCamera();
-                        }}
-                        className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-xl transition cursor-pointer border border-slate-700 font-['Padauk',sans-serif]"
-                      >
-                        ✕ ပြန်ဖယ်မည်
-                      </button>
+                    <div className="space-y-1.5">
+                      <h4 className="text-base sm:text-lg font-bold text-white font-['Padauk',sans-serif]">
+                        နိမ်းပလိပ်ပြား တိုက်ရိုက် Scan စနစ်
+                      </h4>
+                      <p className="text-xs text-slate-300 font-['Padauk',sans-serif] leading-relaxed">
+                        အင်ဂျင်ခန်းအတွင်း နိမ်းပလိပ်ပြား (သို့) ကားကိုယ်ထည်ပြားကို ချိန်၍ တိုက်ရိုက် Scanဖတ်ပါ
+                      </p>
                     </div>
-                  ) : (
-                    <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
-                      {/* Direct Shutter Camera: 100% Works Everywhere */}
+
+
+
+                    <div className="space-y-2.5 pt-1">
+                      {/* BUTTON 1: Live In-App Viewfinder (In-App Camera Stream) */}
                       <button
                         type="button"
-                        onClick={() => fileInputCameraRef.current?.click()}
-                        className="px-5 py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition cursor-pointer shadow-md flex items-center justify-center gap-2 font-['Padauk',sans-serif] active:scale-95"
+                        onClick={() => startLiveCamera(cameraFacing, true)}
+                        className="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-sm rounded-2xl shadow-xl shadow-amber-500/30 transition cursor-pointer font-['Padauk',sans-serif] active:scale-95 flex items-center justify-center gap-2.5"
                       >
-                        <Camera className="w-4 h-4 text-slate-950" />
-                        <span>ဖုန်းကင်မရာဖြင့် ရိုက်မည်</span>
+                        <Scan className="w-5 h-5 text-slate-950" />
+                        <span>📹 Live Scanner တိုက်ရိုက်ဖွင့်မည်</span>
                       </button>
 
-                      {/* Live Camera Scanner */}
-                      <button
-                        type="button"
-                        onClick={startLiveCamera}
-                        className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer border border-amber-500/30 flex items-center justify-center gap-2 font-['Padauk',sans-serif] active:scale-95"
-                      >
-                        <Scan className="w-4 h-4 text-amber-400" />
-                        <span>တိုက်ရိုက် Live Scan</span>
-                      </button>
+                      {/* BUTTON 2 & 3: Native Photo Shoot & Gallery */}
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => fileInputCameraRef.current?.click()}
+                          className="flex-1 py-3 px-3 bg-slate-900 hover:bg-slate-800 text-slate-100 text-xs font-bold rounded-xl border border-slate-700 transition cursor-pointer font-['Padauk',sans-serif] flex items-center justify-center gap-2 shadow-sm"
+                        >
+                          <Camera className="w-4 h-4 text-amber-400" />
+                          <span>📷 ဓာတ်ပုံရိုက်မည်</span>
+                        </button>
 
-                      {/* Gallery Photo */}
-                      <button
-                        type="button"
-                        onClick={() => fileInputGalleryRef.current?.click()}
-                        className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs sm:text-sm rounded-xl transition cursor-pointer border border-slate-700 flex items-center justify-center gap-2 font-['Padauk',sans-serif]"
-                      >
-                        <ImageIcon className="w-4 h-4 text-amber-400" />
-                        <span>ဖုန်းထဲရှိပုံ ရွေးမည်</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => fileInputGalleryRef.current?.click()}
+                          className="flex-1 py-3 px-3 bg-slate-900 hover:bg-slate-800 text-slate-100 text-xs font-bold rounded-xl border border-slate-700 transition cursor-pointer font-['Padauk',sans-serif] flex items-center justify-center gap-2 shadow-sm"
+                        >
+                          <ImageIcon className="w-4 h-4 text-amber-400" />
+                          <span>📁 ဖုန်းထဲရှိပုံ (Gallery)</span>
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ACTION BUTTONS UNDER VIEWPORT */}
+              <div className="w-full max-w-lg mx-auto">
+                {isScanning ? (
+                  <div className="bg-slate-950/95 border border-amber-500/60 rounded-2xl p-4 backdrop-blur-md space-y-2.5 shadow-2xl">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-amber-300 font-['Padauk',sans-serif] flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4 animate-spin text-amber-400 shrink-0" />
+                        <span>{scanStepLabel}</span>
+                      </span>
+                      <span className="font-mono font-bold text-amber-400">{scanProgress}%</span>
+                    </div>
+                    <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
+                      <div 
+                        className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-300 transition-all duration-300 rounded-full"
+                        style={{ width: `${scanProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : isLiveCameraActive ? (
+                  <div className="flex flex-wrap items-center justify-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={captureFromLiveCamera}
+                      className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/30 flex items-center gap-2 font-['Padauk',sans-serif] active:scale-95"
+                    >
+                      <Scan className="w-4 h-4 text-slate-950" />
+                      <span>ချက်ချင်းဖတ်မည် (Instant Scan)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAutoScanEnabled(!isAutoScanEnabled);
+                        setAutoScanProgress(0);
+                      }}
+                      className={`px-3.5 py-3 text-xs font-bold rounded-xl transition cursor-pointer border flex items-center gap-1.5 font-['Padauk',sans-serif] ${
+                        isAutoScanEnabled
+                          ? 'bg-amber-500/20 border-amber-500/60 text-amber-300'
+                          : 'bg-slate-800 border-slate-700 text-slate-400'
+                      }`}
+                    >
+                      <Zap className={`w-3.5 h-3.5 ${isAutoScanEnabled ? 'text-amber-400' : 'text-slate-500'}`} />
+                      <span>အော်တိုဖတ်: {isAutoScanEnabled ? 'ON' : 'OFF'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={stopLiveCamera}
+                      className="px-3.5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer border border-slate-700 font-['Padauk',sans-serif] flex items-center gap-1.5"
+                    >
+                      <X className="w-4 h-4 text-red-400" />
+                      <span>ကင်မရာ ပိတ်မည်</span>
+                    </button>
+                  </div>
+                ) : previewImage ? (
+                  <div className="flex flex-wrap items-center justify-center gap-2.5">
+                    <button
+                      onClick={() => {
+                        const base64Data = previewImage.includes(',') ? previewImage.split(',')[1] : previewImage;
+                        handleProcessImage(base64Data);
+                      }}
+                      className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 text-slate-950 font-black text-xs sm:text-sm rounded-xl transition cursor-pointer shadow-lg shadow-amber-500/30 flex items-center gap-2 font-['Padauk',sans-serif] active:scale-95"
+                    >
+                      <Scan className="w-4 h-4 text-slate-950" />
+                      <span>နိမ်းပလိပ်ပြား ဖတ်မည် (Scan Now)</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setPreviewImage(null);
+                        fileInputCameraRef.current?.click();
+                      }}
+                      className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition cursor-pointer border border-slate-700 font-['Padauk',sans-serif] flex items-center gap-1.5"
+                    >
+                      <Camera className="w-4 h-4 text-amber-400" />
+                      <span>အသစ်ရိုက်မည်</span>
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               {/* Optional Discrete Collapsible for Testing Samples Without a Car */}
@@ -1017,6 +1158,7 @@ export const UniversalNameplateScannerModal: React.FC<UniversalNameplateScannerM
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {[
+                      { label: 'Yunnei 490QB (တရုတ်ဒီဇယ်အင်ဂျင်)', code: '490QGB 48kW 3200rpm BNK17001613 XK06-002-00105 成都云内' },
                       { label: 'Toyota Wish 1.8X (DBA-ZGE20G)', code: 'DBA-ZGE20G-HPXNP 2ZR-FAE 1797cc ZGE20-0147194 8V9 K311 -02A' },
                       { label: 'Toyota Wish 1.8S (DBA-ZGE20W)', code: 'DBA-ZGE20W-HPXSP 2ZR-FAE 1797cc 8S6 K311 -02A' },
                       { label: 'Corolla Fielder (DBA-NZE141G)', code: 'DBA-NZE141G-AWXEK 1NZ-FE 1496cc K310 -02A' },
